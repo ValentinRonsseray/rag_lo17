@@ -11,6 +11,14 @@ from langchain.docstore.document import Document
 
 from src.rag_core import RAGSystem
 from src.evaluation import RAGEvaluator
+from src.scrap_pokepedia_links import retrieve_pokepedia_documents
+
+# Configuration de la page (doit être la première commande Streamlit)
+st.set_page_config(
+    page_title="Pokédex IA - Système de Questions-Réponses",
+    page_icon="⚡",
+    layout="wide"
+)
 
 # Initialisation de l'état de la session
 if "rag_system" not in st.session_state:
@@ -18,43 +26,45 @@ if "rag_system" not in st.session_state:
 if "evaluator" not in st.session_state:
     st.session_state.evaluator = RAGEvaluator()
 
-# Chargement et intégration des données Pokémon
-if "pokemon_data_embedded" not in st.session_state:
-    # Lecture des données Pokémon
-    pokemon_df = pd.read_csv("data/pokemon_basic_stats.csv")
-    
-    # Conversion de chaque ligne Pokémon en document
-    documents = []
-    for _, row in pokemon_df.iterrows():
-        # Création d'une description textuelle du Pokémon
-        text = f"Le Pokémon {row['name']} (ID: {row['id']}) est de type {row['types']}. "
-        text += f"Il possède les capacités suivantes : {row['abilities']}. "
-        text += f"Ses statistiques de base sont : PV: {row['hp']}, Attaque: {row['attack']}, Défense: {row['defense']}, "
-        text += f"Attaque Spéciale: {row['special-attack']}, Défense Spéciale: {row['special-defense']}, Vitesse: {row['speed']}. "
-        text += f"Il pèse {row['weight']} unités et mesure {row['height']} unités de hauteur."
+# Chargement et intégration des données
+if "data_embedded" not in st.session_state:
+    with st.spinner("Chargement des données Pokémon et Poképedia..."):
+        # Chargement des données Pokémon
+        pokemon_df = pd.read_csv("data/pokemon_basic_stats.csv")
         
-        # Création du document avec métadonnées
-        doc = Document(
-            page_content=text,
-            metadata={
-                "id": row["id"],
-                "name": row["name"],
-                "types": row["types"],
-                "abilities": row["abilities"]
-            }
-        )
-        documents.append(doc)
-    
-    # Intégration des documents
-    st.session_state.rag_system.embed_documents(documents)
-    st.session_state.pokemon_data_embedded = True
-
-# Configuration de la page
-st.set_page_config(
-    page_title="Pokédex IA - Système de Questions-Réponses",
-    page_icon="⚡",
-    layout="wide"
-)
+        # Conversion de chaque ligne Pokémon en document
+        pokemon_documents = []
+        for _, row in pokemon_df.iterrows():
+            text = f"Le Pokémon {row['name']} (ID: {row['id']}) est de type {row['types']}. "
+            text += f"Il possède les capacités suivantes : {row['abilities']}. "
+            text += f"Ses statistiques de base sont : PV: {row['hp']}, Attaque: {row['attack']}, Défense: {row['defense']}, "
+            text += f"Attaque Spéciale: {row['special-attack']}, Défense Spéciale: {row['special-defense']}, Vitesse: {row['speed']}. "
+            text += f"Il pèse {row['weight']} unités et mesure {row['height']} unités de hauteur."
+            
+            doc = Document(
+                page_content=text,
+                metadata={
+                    "source": "pokemon_stats",
+                    "id": row["id"],
+                    "name": row["name"],
+                    "types": row["types"],
+                    "abilities": row["abilities"]
+                }
+            )
+            pokemon_documents.append(doc)
+        
+        # Chargement des documents Poképedia
+        st.info("Récupération des pages Poképedia...")
+        pokepedia_documents = retrieve_pokepedia_documents()
+        
+        # Combinaison des documents
+        all_documents = pokemon_documents + pokepedia_documents
+        
+        # Intégration des documents
+        st.info("Intégration des documents dans le système RAG...")
+        st.session_state.rag_system.embed_documents(all_documents)
+        st.session_state.data_embedded = True
+        st.success(f"Intégration terminée ! {len(all_documents)} documents chargés.")
 
 # Titre et description
 st.title("⚡ Pokédex IA - Système de Questions-Réponses")

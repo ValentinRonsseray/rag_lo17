@@ -5,13 +5,12 @@ Application Streamlit pour le système RAG Pokémon.
 import os
 import streamlit as st
 from pathlib import Path
-import pandas as pd
 from datetime import datetime
-from langchain.docstore.document import Document
+import pandas as pd
 
 from src.rag_core import RAGSystem
 from src.evaluation import RAGEvaluator
-from src.scrap_pokepedia_links import retrieve_pokepedia_documents
+from src.format_pokeapi_data import create_pokemon_documents
 
 # Configuration de la page (doit être la première commande Streamlit)
 st.set_page_config(
@@ -28,43 +27,16 @@ if "evaluator" not in st.session_state:
 
 # Chargement et intégration des données
 if "data_embedded" not in st.session_state:
-    with st.spinner("Chargement des données Pokémon et Poképedia..."):
-        # Chargement des données Pokémon
-        pokemon_df = pd.read_csv("data/pokemon_basic_stats.csv")
-        
-        # Conversion de chaque ligne Pokémon en document
-        pokemon_documents = []
-        for _, row in pokemon_df.iterrows():
-            text = f"Le Pokémon {row['name']} (ID: {row['id']}) est de type {row['types']}. "
-            text += f"Il possède les capacités suivantes : {row['abilities']}. "
-            text += f"Ses statistiques de base sont : PV: {row['hp']}, Attaque: {row['attack']}, Défense: {row['defense']}, "
-            text += f"Attaque Spéciale: {row['special-attack']}, Défense Spéciale: {row['special-defense']}, Vitesse: {row['speed']}. "
-            text += f"Il pèse {row['weight']} unités et mesure {row['height']} unités de hauteur."
-            
-            doc = Document(
-                page_content=text,
-                metadata={
-                    "source": "pokemon_stats",
-                    "id": row["id"],
-                    "name": row["name"],
-                    "types": row["types"],
-                    "abilities": row["abilities"]
-                }
-            )
-            pokemon_documents.append(doc)
-        
-        # Chargement des documents Poképedia
-        st.info("Récupération des pages Poképedia...")
-        pokepedia_documents = retrieve_pokepedia_documents()
-        
-        # Combinaison des documents
-        all_documents = pokemon_documents + pokepedia_documents
+    with st.spinner("Chargement des données Pokémon depuis PokeAPI..."):
+        # Chargement des documents Pokémon depuis PokeAPI
+        pokemon_documents = create_pokemon_documents()
         
         # Intégration des documents
         st.info("Intégration des documents dans le système RAG...")
-        st.session_state.rag_system.embed_documents(all_documents)
+        st.session_state.rag_system.embed_documents(pokemon_documents)
         st.session_state.data_embedded = True
-        st.success(f"Intégration terminée ! {len(all_documents)} documents chargés.")
+        st.session_state.num_pokemon = len(pokemon_documents)
+        st.success(f"Intégration terminée ! {len(pokemon_documents)} documents chargés.")
 
 # Titre et description
 st.title("⚡ Pokédex IA - Système de Questions-Réponses")
@@ -72,6 +44,13 @@ st.markdown("""
 Cette application utilise un système RAG (Retrieval-Augmented Generation) pour répondre à vos questions
 sur les Pokémon. Le système utilise le modèle Gemini de Google pour la génération
 et ChromaDB pour le stockage et la récupération des informations.
+
+Les données proviennent directement de l'API Pokémon officielle (PokeAPI) et incluent :
+- Informations détaillées sur chaque Pokémon
+- Statistiques de base
+- Types et capacités
+- Descriptions en français
+- Formes alternatives (Méga-évolutions, formes régionales, etc.)
 """)
 
 # Barre latérale
@@ -82,23 +61,11 @@ with st.sidebar:
     st.subheader("Paramètres du Modèle")
     temperature = st.slider("Température", 0.0, 1.0, 0.0, 0.1)
     
-    # Téléchargement de documents
-    st.subheader("Téléchargement de Documents")
-    uploaded_file = st.file_uploader("Télécharger un document", type=["txt", "pdf"])
-    
-    if uploaded_file:
-        # Sauvegarde du fichier téléchargé
-        save_path = Path("data/uploads") / uploaded_file.name
-        save_path.parent.mkdir(parents=True, exist_ok=True)
-        
-        with open(save_path, "wb") as f:
-            f.write(uploaded_file.getvalue())
-            
-        # Chargement et intégration du document
-        with st.spinner("Traitement du document..."):
-            docs = st.session_state.rag_system.load_documents([str(save_path)])
-            st.session_state.rag_system.embed_documents(docs)
-            st.success("Document traité avec succès!")
+    # Statistiques des données
+    st.subheader("Statistiques des Données")
+    if "data_embedded" in st.session_state:
+        st.write(f"Nombre de Pokémon : {st.session_state.num_pokemon}")
+        st.write("Sources : PokeAPI")
 
 # Contenu principal
 st.header("Posez votre Question")

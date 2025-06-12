@@ -7,10 +7,13 @@ import streamlit as st
 from pathlib import Path
 from datetime import datetime
 import pandas as pd
+import asyncio
+from langchain.docstore.document import Document
 
 from src.rag_core import RAGSystem
 from src.evaluation import RAGEvaluator
 from src.format_pokeapi_data import create_pokemon_documents
+from ragas import SingleTurnSample
 
 # Configuration de la page (doit être la première commande Streamlit)
 st.set_page_config(
@@ -96,38 +99,102 @@ if question:
         search_type = result.get("search_type", "semantic")
         if search_type == "exact":
             st.success("Recherche exacte (index inverse)")
+            # Pour les recherches exactes, on n'affiche pas les métriques de confiance
+            st.subheader("Réponse")
+            st.write(result["answer"])
         else:
             st.info("Recherche sémantique (vecteurs)")
-        
-        # Affichage de la réponse
-        st.subheader("Réponse")
-        st.write(result["answer"])
-        
-        # Affichage du contexte (uniquement pour la recherche sémantique)
-        if search_type == "semantic" and result["context"]:
-            with st.expander("Voir le Contexte Récupéré"):
-                for i, ctx in enumerate(result["context"], 1):
-                    st.markdown(f"**Contexte {i}:**")
-                    st.write(ctx)
-                    st.markdown("---")
-        
-        # Évaluation de la réponse
-        if "reference_answer" in st.session_state:
-            scores = st.session_state.evaluator.evaluate_response(
-                result["answer"],
-                st.session_state.reference_answer,
-                result["context"]
+            # Affichage de la réponse
+            st.subheader("Réponse")
+            st.write(result["answer"])
+            
+            # Évaluation de la réponse
+            with st.spinner("Évaluation de la réponse..."):
+                # Convertir le contexte en objets Document
+                context_docs = [Document(page_content=ctx) for ctx in result["context"]]
+                
+                # Créer un SingleTurnSample pour les métriques RAGAS
+                sample = SingleTurnSample(
+                    prompt=question,
+                    response=result["answer"],
+                    reference="",  # Pas de référence pour l'évaluation en temps réel
+                    context=context_docs,
+                )
+                
+                # Calculer uniquement les métriques qui ne nécessitent pas de référence
+                try:
+                    response_relevancy = asyncio.run(st.session_state.evaluator.response_relevancy.single_turn_ascore(sample))
+                    context_precision = asyncio.run(st.session_state.evaluator.context_precision.single_turn_ascore(sample))
+                    context_recall = asyncio.run(st.session_state.evaluator.context_recall.single_turn_ascore(sample))
+                    faithfulness = asyncio.run(st.session_state.evaluator.faithfulness_metric.single_turn_ascore(sample))
+                except Exception as e:
+                    print(f"Erreur lors du calcul des métriques: {e}")
+                    response_relevancy = 0.0
+                    context_precision = 0.0
+                    context_recall = 0.0
+                    faithfulness = 0.0
+            
+            # Affichage des indicateurs de confiance
+            st.subheader("Indicateurs de Confiance")
+            
+            # Création de colonnes pour les métriques
+            col1, col2, col3, col4 = st.columns(4)
+            
+            # Fidélité (inverse de la probabilité d'hallucination)
+            hallucination_prob = 1 - faithfulness
+            with col1:
+                st.metric(
+                    "Probabilité d'Hallucination",
+                    f"{hallucination_prob:.1%}",
+                    delta=None,
+                    delta_color="inverse"
+                )
+            
+            # Pertinence de la réponse
+            with col2:
+                st.metric(
+                    "Pertinence",
+                    f"{response_relevancy:.1%}",
+                    delta=None
+                )
+            
+            # Précision du contexte
+            with col3:
+                st.metric(
+                    "Précision du Contexte",
+                    f"{context_precision:.1%}",
+                    delta=None
+                )
+            
+            # Rappel du contexte
+            with col4:
+                st.metric(
+                    "Rappel du Contexte",
+                    f"{context_recall:.1%}",
+                    delta=None
+                )
+            
+            # Barre de progression pour la confiance globale
+            confidence_score = (
+                faithfulness * 0.4 +  # Poids plus important pour la fidélité
+                response_relevancy * 0.3 +
+                context_precision * 0.15 +
+                context_recall * 0.15
             )
             
-            # Affichage des scores
-            st.subheader("Scores d'Évaluation")
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.metric("Correspondance Exacte", f"{scores['exact_match']:.2f}")
-            with col2:
-                st.metric("Score F1", f"{scores['f1_score']:.2f}")
-            with col3:
-                st.metric("Fidélité", f"{scores['faithfulness']:.2f}")
+            st.progress(confidence_score, text="Confiance Globale")
+            
+            # Avertissement si probabilité d'hallucination élevée
+            if hallucination_prob > 0.3:
+                st.warning("⚠️ Attention : Cette réponse pourrait contenir des informations incorrectes ou inventées.")
+            
+            # Affichage du contexte (uniquement pour la recherche sémantique)
+            if result["context"]:
+                with st.expander("Voir le Contexte Récupéré"):
+                    for i, ctx in enumerate(result["context"], 1):
+                        st.markdown(f"**Contexte {i}:**")
+                        st.write(ctx)
+                        st.markdown("---")
 
 # Section d'évaluation
 st.header("Évaluation")
@@ -139,14 +206,14 @@ with st.expander("Ajouter une Réponse de Référence"):
 
 # Journal des hallucinations
 if "answer" in locals() and "reference_answer" in st.session_state:
-    if scores["faithfulness"] < 0.7:  # Seuil pour l'hallucination
+    if faithfulness < 0.7:  # Seuil pour l'hallucination
         log_path = Path("hallucinations.csv")
         log_df = pd.DataFrame([{
             "timestamp": datetime.now(),
             "question": question,
             "prediction": result["answer"],
             "reference": st.session_state.reference_answer,
-            "faithfulness_score": scores["faithfulness"],
+            "faithfulness_score": faithfulness,
             "search_type": search_type
         }])
         

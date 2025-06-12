@@ -178,7 +178,7 @@ class RAGSystem:
         question_lower = question.lower()
         
         # Recherche par type
-        if "type" in question_lower or "est de type" in question_lower:
+        if any(keyword in question_lower for keyword in ["type", "est de type", "sont de type", "liste", "quels sont"]):
             for type_name in self.hybrid_index.indexes.get("type", {}).keys():
                 if type_name in question_lower:
                     pokemon_names = self.hybrid_index.search_by_type(type_name)
@@ -191,7 +191,7 @@ class RAGSystem:
                         }
         
         # Recherche par statut
-        if "légendaire" in question_lower or "legendary" in question_lower:
+        if any(keyword in question_lower for keyword in ["légendaire", "legendary", "légendaires", "legendaries"]):
             pokemon_names = self.hybrid_index.search_by_status("legendary")
             if pokemon_names:
                 return {
@@ -201,7 +201,7 @@ class RAGSystem:
                     "search_type": "exact"
                 }
         
-        if "mythique" in question_lower or "mythical" in question_lower:
+        if any(keyword in question_lower for keyword in ["mythique", "mythical", "mythiques", "mythicals"]):
             pokemon_names = self.hybrid_index.search_by_status("mythical")
             if pokemon_names:
                 return {
@@ -212,7 +212,7 @@ class RAGSystem:
                 }
         
         # Si aucune recherche exacte n'est possible, utiliser la recherche vectorielle
-        docs = self.retriever.get_relevant_documents(question)
+        docs = self.retriever.invoke(question)  # Utiliser invoke au lieu de get_relevant_documents
         chain = self.create_chain()
         answer = chain.invoke(question)
         

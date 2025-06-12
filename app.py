@@ -51,6 +51,10 @@ Les données proviennent directement de l'API Pokémon officielle (PokeAPI) et i
 - Types et capacités
 - Descriptions en français
 - Formes alternatives (Méga-évolutions, formes régionales, etc.)
+
+Le système utilise un index hybride qui combine :
+- Recherche vectorielle pour les questions complexes
+- Index inverses pour les recherches exactes (types, statuts, etc.)
 """)
 
 # Barre latérale
@@ -66,6 +70,16 @@ with st.sidebar:
     if "data_embedded" in st.session_state:
         st.write(f"Nombre de Pokémon : {st.session_state.num_pokemon}")
         st.write("Sources : PokeAPI")
+    
+    # Exemples de questions
+    st.subheader("Exemples de Questions")
+    st.markdown("""
+    - Quels sont les Pokémon de type feu ?
+    - Liste les Pokémon légendaires
+    - Quels sont les Pokémon mythiques ?
+    - Décris-moi Pikachu
+    - Quelles sont les statistiques de base de Charizard ?
+    """)
 
 # Contenu principal
 st.header("Posez votre Question")
@@ -78,16 +92,24 @@ if question:
     with st.spinner("Génération de la réponse..."):
         result = st.session_state.rag_system.query(question)
         
+        # Affichage du type de recherche
+        search_type = result.get("search_type", "semantic")
+        if search_type == "exact":
+            st.success("Recherche exacte (index inverse)")
+        else:
+            st.info("Recherche sémantique (vecteurs)")
+        
         # Affichage de la réponse
         st.subheader("Réponse")
         st.write(result["answer"])
         
-        # Affichage du contexte
-        with st.expander("Voir le Contexte Récupéré"):
-            for i, ctx in enumerate(result["context"], 1):
-                st.markdown(f"**Contexte {i}:**")
-                st.write(ctx)
-                st.markdown("---")
+        # Affichage du contexte (uniquement pour la recherche sémantique)
+        if search_type == "semantic" and result["context"]:
+            with st.expander("Voir le Contexte Récupéré"):
+                for i, ctx in enumerate(result["context"], 1):
+                    st.markdown(f"**Contexte {i}:**")
+                    st.write(ctx)
+                    st.markdown("---")
         
         # Évaluation de la réponse
         if "reference_answer" in st.session_state:
@@ -124,7 +146,8 @@ if "answer" in locals() and "reference_answer" in st.session_state:
             "question": question,
             "prediction": result["answer"],
             "reference": st.session_state.reference_answer,
-            "faithfulness_score": scores["faithfulness"]
+            "faithfulness_score": scores["faithfulness"],
+            "search_type": search_type
         }])
         
         if log_path.exists():

@@ -3,6 +3,7 @@ Core RAG components for the question answering system.
 """
 
 import os
+import json
 from typing import List, Dict, Any, Optional
 from pathlib import Path
 from dotenv import load_dotenv
@@ -22,6 +23,61 @@ from langchain.schema import StrOutputParser
 from langchain.schema.runnable import RunnablePassthrough
 from langchain_community.vectorstores import Chroma
 from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
+
+class HybridIndex:
+    """
+    Index hybride combinant recherche vectorielle et index inverses.
+    
+    Avantages de l'index hybride :
+    1. Recherche sémantique : La recherche vectorielle permet de trouver des documents
+       pertinents même si les termes exacts ne sont pas présents.
+    2. Recherche exacte : Les index inverses permettent de trouver rapidement des
+       Pokémon par leurs caractéristiques spécifiques (type, statut, etc.).
+    3. Performance : Les index inverses sont très rapides pour les requêtes exactes.
+    4. Flexibilité : Permet de combiner les deux approches selon le type de requête.
+    """
+    
+    def __init__(self, indexes_dir: str = "data/indexes"):
+        """Initialise l'index hybride.
+        
+        Args:
+            indexes_dir: Répertoire contenant les index inverses
+        """
+        self.indexes_dir = Path(indexes_dir)
+        self.indexes = {}
+        self.load_indexes()
+    
+    def load_indexes(self):
+        """Charge tous les index inverses."""
+        index_files = {
+            "type": "type_index.json",
+            "status": "status_index.json",
+            "evolution": "evolution_index.json",
+            "habitat": "habitat_index.json",
+            "color": "color_index.json"
+        }
+        
+        for index_name, filename in index_files.items():
+            file_path = self.indexes_dir / filename
+            if file_path.exists():
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    self.indexes[index_name] = json.load(f)
+    
+    def search_by_type(self, type_name: str) -> List[str]:
+        """Recherche les Pokémon par type."""
+        return self.indexes.get("type", {}).get(type_name, [])
+    
+    def search_by_status(self, status: str) -> List[str]:
+        """Recherche les Pokémon par statut (légendaire, mythique, bébé)."""
+        return self.indexes.get("status", {}).get(status, [])
+    
+    def search_by_habitat(self, habitat: str) -> List[str]:
+        """Recherche les Pokémon par habitat."""
+        return self.indexes.get("habitat", {}).get(habitat, [])
+    
+    def search_by_color(self, color: str) -> List[str]:
+        """Recherche les Pokémon par couleur."""
+        return self.indexes.get("color", {}).get(color, [])
 
 class RAGSystem:
     def __init__(
@@ -49,9 +105,10 @@ class RAGSystem:
             temperature=temperature
         )
         
-        # Initialize vector store
+        # Initialize vector store and hybrid index
         self.vectorstore = None
         self.retriever = None
+        self.hybrid_index = HybridIndex()
         
         # Initialize prompt template
         self.prompt_template = PromptTemplate.from_template(
@@ -64,18 +121,6 @@ class RAGSystem:
             Context: {context} 
             Answer:"""
         )
-        
-    def load_documents(self, urls: List[str]) -> List[Document]:
-        """Load documents from URLs.
-        
-        Args:
-            urls: List of URLs to load documents from
-            
-        Returns:
-            List of loaded documents
-        """
-        loader = WebBaseLoader(urls)
-        return loader.load()
     
     def embed_documents(self, documents: List[Document]) -> None:
         """Embed documents and store them in Chroma.
@@ -89,7 +134,7 @@ class RAGSystem:
             persist_directory=str(self.persist_directory)
         )
         self.retriever = self.vectorstore.as_retriever(search_kwargs={"k": 3})
-        
+    
     def format_docs(self, docs: List[Document]) -> str:
         """Format documents for the prompt.
         
@@ -121,16 +166,52 @@ class RAGSystem:
         """
         if not self.retriever:
             raise ValueError("No documents have been embedded yet. Call embed_documents first.")
-            
-        # Get relevant documents
-        docs = self.retriever.get_relevant_documents(question)
         
-        # Generate answer
+        # Analyse de la question pour déterminer le type de recherche
+        question_lower = question.lower()
+        
+        # Recherche par type
+        if "type" in question_lower or "est de type" in question_lower:
+            for type_name in self.hybrid_index.indexes.get("type", {}).keys():
+                if type_name in question_lower:
+                    pokemon_names = self.hybrid_index.search_by_type(type_name)
+                    if pokemon_names:
+                        return {
+                            "answer": f"Les Pokémon de type {type_name} sont : {', '.join(pokemon_names)}",
+                            "context": [],
+                            "metadata": [],
+                            "search_type": "exact"
+                        }
+        
+        # Recherche par statut
+        if "légendaire" in question_lower or "legendary" in question_lower:
+            pokemon_names = self.hybrid_index.search_by_status("legendary")
+            if pokemon_names:
+                return {
+                    "answer": f"Les Pokémon légendaires sont : {', '.join(pokemon_names)}",
+                    "context": [],
+                    "metadata": [],
+                    "search_type": "exact"
+                }
+        
+        if "mythique" in question_lower or "mythical" in question_lower:
+            pokemon_names = self.hybrid_index.search_by_status("mythical")
+            if pokemon_names:
+                return {
+                    "answer": f"Les Pokémon mythiques sont : {', '.join(pokemon_names)}",
+                    "context": [],
+                    "metadata": [],
+                    "search_type": "exact"
+                }
+        
+        # Si aucune recherche exacte n'est possible, utiliser la recherche vectorielle
+        docs = self.retriever.get_relevant_documents(question)
         chain = self.create_chain()
         answer = chain.invoke(question)
         
         return {
             "answer": answer,
             "context": [doc.page_content for doc in docs],
-            "metadata": [doc.metadata for doc in docs]
+            "metadata": [doc.metadata for doc in docs],
+            "search_type": "semantic"
         } 

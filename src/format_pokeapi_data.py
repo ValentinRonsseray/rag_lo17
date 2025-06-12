@@ -37,13 +37,28 @@ def format_pokemon_document(pokemon: Dict[str, Any]) -> Document:
     abilities_str = ", ".join(abilities)
     
     # Informations sur l'espèce
-    species_info = pokemon.get('species_info', {})
+    species_info = pokemon.get('species_info', {}) or {}  # Assure qu'on a toujours un dict
     flavor_text = ""
-    if species_info:
-        for entry in species_info.get('flavor_text_entries', []):
-            if entry.get('language', {}).get('name') == 'fr':
-                flavor_text = entry.get('flavor_text', '').replace('\n', ' ')
-                break
+    names = {}
+    genera = {}
+    
+    # Récupération de la description en français
+    for entry in species_info.get('flavor_text_entries', []):
+        if entry.get('language', {}).get('name') == 'fr':
+            flavor_text = entry.get('flavor_text', '').replace('\n', ' ')
+            break
+    
+    # Récupération des noms dans différentes langues
+    for name_entry in species_info.get('names', []):
+        lang = name_entry.get('language', {}).get('name')
+        if lang in ['en', 'fr', 'ja']:
+            names[lang] = name_entry.get('name', '')
+    
+    # Récupération des genres dans différentes langues
+    for genus_entry in species_info.get('genera', []):
+        lang = genus_entry.get('language', {}).get('name')
+        if lang in ['en', 'fr', 'ja']:
+            genera[lang] = genus_entry.get('genus', '')
     
     # Construction du texte
     text = f"Le Pokémon {name}"
@@ -71,14 +86,21 @@ def format_pokemon_document(pokemon: Dict[str, Any]) -> Document:
     if flavor_text:
         text += f"Description : {flavor_text}"
     
-    # Métadonnées (conversion des listes en chaînes)
+    # Métadonnées
     metadata = {
         "source": "pokeapi",
         "name": name,
         "base_form": base_form,
-        "types": ", ".join(types),  # Conversion de la liste en chaîne
-        "abilities": ", ".join(abilities),  # Conversion de la liste en chaîne
-        "stats": json.dumps(stats)  # Conversion du dictionnaire en chaîne JSON
+        "types": ", ".join(types),
+        "abilities": ", ".join(abilities),
+        "stats": json.dumps(stats),
+        "names": json.dumps(names),
+        "genera": json.dumps(genera),
+        "is_legendary": species_info.get('is_legendary', False),
+        "is_mythical": species_info.get('is_mythical', False),
+        "is_baby": species_info.get('is_baby', False),
+        "color": species_info.get('color', {}).get('name', '') if species_info.get('color') else '',
+        "habitat": species_info.get('habitat', {}).get('name', '') if species_info.get('habitat') else ''
     }
     
     return Document(page_content=text, metadata=metadata)

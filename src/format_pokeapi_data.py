@@ -6,6 +6,7 @@ import json
 import os
 from typing import List, Dict, Any
 from langchain.docstore.document import Document
+from src.pokepedia_data import PokepediaData
 
 def load_pokemon_data() -> List[Dict[str, Any]]:
     """Charge les données Pokémon depuis les fichiers JSON."""
@@ -19,7 +20,7 @@ def load_pokemon_data() -> List[Dict[str, Any]]:
     
     return pokemon_data
 
-def format_pokemon_document(pokemon: Dict[str, Any]) -> Document:
+def format_pokemon_document(pokemon: Dict[str, Any], pokepedia: PokepediaData) -> Document:
     """Formate les données d'un Pokémon en document pour le RAG."""
     # Informations de base
     name = pokemon.get('name', '')
@@ -37,7 +38,7 @@ def format_pokemon_document(pokemon: Dict[str, Any]) -> Document:
     abilities_str = ", ".join(abilities)
     
     # Informations sur l'espèce
-    species_info = pokemon.get('species_info', {}) or {}  # Assure qu'on a toujours un dict
+    species_info = pokemon.get('species_info', {}) or {}
     flavor_text = ""
     names = {}
     genera = {}
@@ -83,8 +84,34 @@ def format_pokemon_document(pokemon: Dict[str, Any]) -> Document:
             stats_text.append(f"{stat_name_fr}: {value}")
         text += ", ".join(stats_text) + ". "
     
-    if flavor_text:
-        text += f"Description : {flavor_text}"
+    # Ajout des informations Poképédia
+    pokepedia_info = pokemon.get('pokepedia', {})
+    if pokepedia_info:
+        if pokepedia_info.get('description'):
+            text += f"\n\n{pokepedia_info['description']}"
+        
+        if pokepedia_info.get('biology'):
+            text += f"\n\nBiologie : {pokepedia_info['biology']}"
+        
+        if pokepedia_info.get('behavior'):
+            text += f"\n\nComportement : {pokepedia_info['behavior']}"
+        
+        if pokepedia_info.get('habitat'):
+            text += f"\n\nHabitat : {pokepedia_info['habitat']}"
+        
+        if pokepedia_info.get('evolution'):
+            text += f"\n\nÉvolution : {pokepedia_info['evolution']}"
+        
+        if pokepedia_info.get('mythology'):
+            text += f"\n\nMythologie : {pokepedia_info['mythology']}"
+        
+        if pokepedia_info.get('trivia'):
+            text += "\n\nFaits divers :"
+            for trivia in pokepedia_info['trivia']:
+                text += f"\n- {trivia}"
+    
+    elif flavor_text:
+        text += f"\n\nDescription : {flavor_text}"
     
     # Métadonnées
     metadata = {
@@ -100,7 +127,8 @@ def format_pokemon_document(pokemon: Dict[str, Any]) -> Document:
         "is_mythical": species_info.get('is_mythical', False),
         "is_baby": species_info.get('is_baby', False),
         "color": species_info.get('color', {}).get('name', '') if species_info.get('color') else '',
-        "habitat": species_info.get('habitat', {}).get('name', '') if species_info.get('habitat') else ''
+        "habitat": species_info.get('habitat', {}).get('name', '') if species_info.get('habitat') else '',
+        "has_pokepedia": bool(pokepedia_info)
     }
     
     return Document(page_content=text, metadata=metadata)
@@ -108,7 +136,12 @@ def format_pokemon_document(pokemon: Dict[str, Any]) -> Document:
 def create_pokemon_documents() -> List[Document]:
     """Crée les documents pour tous les Pokémon."""
     pokemon_data = load_pokemon_data()
-    return [format_pokemon_document(pokemon) for pokemon in pokemon_data]
+    pokepedia = PokepediaData()
+    
+    # Enrichissement des données avec Poképédia
+    enriched_data = [pokepedia.enrich_pokemon_document(pokemon) for pokemon in pokemon_data]
+    
+    return [format_pokemon_document(pokemon, pokepedia) for pokemon in enriched_data]
 
 if __name__ == "__main__":
     documents = create_pokemon_documents()

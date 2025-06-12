@@ -1,0 +1,45 @@
+question,expected_type,actual_type,prediction,reference,exact_match,f1_score,context_precision,context_recall,context_entities_recall,noise_sensitivity,response_relevancy,faithfulness
+Quels sont les Pokémon de type feu ?,exact,semantic,"Bien sûr ! Je peux vous aider avec ça.
+
+D'après le contexte fourni, Torchic est un Pokémon de type Feu. Il a le talent Brasier ou Turbo et ses stats de base sont :
+
+*   PV : 45
+*   Attaque : 60
+*   Défense : 40
+*   Attaque spéciale : 70
+*   Défense spéciale : 50
+*   Vitesse : 45
+
+Torchic est connu pour être un Pokémon chaleureux, littéralement ! Sa description indique qu'il peut lancer des boules de feu à 1 000 °C.","Les Pokémon de type feu sont : Charmander, Charmeleon, Charizard, Vulpix, Ninetales, Growlithe, Arcanine, Ponyta, Rapidash, Magmar, Flareon, Moltres, Cyndaquil, Quilava, Typhlosion, Slugma, Magcargo, Houndour, Houndoom, Magby, Entei, Ho-Oh, Torchic, Combusken, Blaziken, Numel, Camerupt, Torkoal, Chimchar, Monferno, Infernape, Magmortar, Heatran, Victini, Tepig, Pignite, Emboar, Pansear, Simisear, Darumaka, Darmanitan, Litwick, Lampent, Chandelure, Larvesta, Volcarona, Fennekin, Braixen, Delphox, Litleo, Pyroar, Heatmor, Fletchinder, Talonflame, Litten, Torracat, Incineroar, Salandit, Salazzle, Turtonator, Togedemaru, Blacephalon, Cinderace, Sizzlipede, Centiskorch, Carkol, Coalossal, Arctovish, Arctozolt, Arctovish, Arctozolt, Arctovish, Arctozolt",0.0,0.0909090909090909,0.0,0.0,0.0,0.0,0.0,0.0
+Décris-moi Arcanin,semantic,semantic,"Bien sûr ! Voici une description d'Arcanin basée sur les informations que tu m'as fournies :
+
+Arcanin est un Pokémon de type Feu. Il est connu pour son allure majestueuse et sa fierté, ce qui lui a valu l'admiration des humains depuis longtemps.
+
+**Capacités :**
+
+*   **Intimidation :** Diminue l'Attaque de l'ennemi dès son entrée au combat.
+*   **Torche :** Immunise contre les attaques de type Feu et augmente la puissance des attaques de type Feu du Pokémon.
+*   **Cœur Noble (talent caché) :** Augmente l'Attaque du Pokémon lorsqu'il est touché par une attaque de type Ténèbres.
+
+**Statistiques de base :**
+
+*   **PV :** 90
+*   **Attaque :** 110
+*   **Défense :** 80
+*   **Attaque Spéciale :** 100
+*   **Défense Spéciale :** 80
+*   **Vitesse :** 95
+
+J'espère que cette description te plait ! N'hésite pas si tu as d'autres questions.","Arcanin est un Pokémon majestueux de type feu. Son port altier et son attitude fière ont depuis longtemps conquis le cœur des hommes. Il possède un pelage principalement orange avec des marques noires et blanches, une crinière imposante et une queue touffue. Arcanin est connu pour sa loyauté et son courage. Il est extrêmement fidèle à son dresseur et protégera son territoire avec ferveur. Malgré son apparence imposante, il est doux avec les personnes qu'il apprécie. On le trouve dans les plaines et les forêts, préférant les endroits ouverts où il peut courir librement. Arcanin est basé sur le chien-lion chinois, une créature mythologique, et est considéré comme un symbole de loyauté et de courage dans la mythologie japonaise.",0.0,0.25301204819277107,0.0,0.0,0.0,0.0,0.0,0.0
+Liste les Pokémon légendaires,exact,exact,"Les Pokémon légendaires sont : articuno-galar, articuno, mewtwo-mega-x, mewtwo-mega-y, mewtwo, moltres-galar, moltres, zapdos-galar, zapdos","Les Pokémon légendaires sont : Articuno, Zapdos, Moltres, Mewtwo, Mew, Raikou, Entei, Suicune, Lugia, Ho-Oh, Celebi, Regirock, Regice, Registeel, Latias, Latios, Kyogre, Groudon, Rayquaza, Jirachi, Deoxys, Uxie, Mesprit, Azelf, Dialga, Palkia, Heatran, Regigigas, Giratina, Cresselia, Phione, Manaphy, Darkrai, Shaymin, Arceus, Victini, Cobalion, Terrakion, Virizion, Tornadus, Thundurus, Reshiram, Zekrom, Landorus, Kyurem, Keldeo, Meloetta, Genesect, Xerneas, Yveltal, Zygarde, Diancie, Hoopa, Volcanion, Type: Null, Silvally, Tapu Koko, Tapu Lele, Tapu Bulu, Tapu Fini, Cosmog, Cosmoem, Solgaleo, Lunala, Nihilego, Buzzwole, Pheromosa, Xurkitree, Celesteela, Kartana, Guzzlord, Necrozma, Magearna, Marshadow, Poipole, Naganadel, Stakataka, Blacephalon, Zeraora, Meltan, Melmetal, Zacian, Zamazenta, Eternatus, Calyrex, Glastrier, Spectrier, Regieleki, Regidrago",0.0,0.14814814814814814,0.0,0.0,0.0,0.0,0.0,0.0
+Quelles sont les statistiques de base de Pikachu ?,semantic,semantic,"Bien sûr ! Voici les statistiques de base de Pikachu :
+
+*   **PV** : 35
+*   **Attaque** : 55
+*   **Défense** : 40
+*   **Attaque Spéciale** : 50
+*   **Défense Spéciale** : 50
+*   **Vitesse** : 90
+
+Pikachu est un Pokémon de type Électrik avec les talents Static et Lightning Rod. Il pèse 60 unités et mesure 4 unités de haut.","Les statistiques de base de Pikachu sont : PV: 35, Attaque: 55, Défense: 40, Attaque Spéciale: 50, Défense Spéciale: 50, Vitesse: 90",0.0,0.5769230769230769,0.0,0.0,0.0,0.0,0.0,0.0
+Quels sont les Pokémon mythiques ?,exact,exact,Les Pokémon mythiques sont : mew,"Les Pokémon mythiques sont : Mew, Celebi, Jirachi, Deoxys, Phione, Manaphy, Darkrai, Shaymin, Arceus, Victini, Keldeo, Meloetta, Genesect, Diancie, Hoopa, Volcanion, Magearna, Marshadow, Zeraora, Meltan, Melmetal, Zarude, Calyrex",0.0,0.3125,0.0,0.0,0.0,0.0,0.0,0.0

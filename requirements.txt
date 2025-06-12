@@ -1,0 +1,13 @@
+langchain-core>=0.1.23
+langchain>=0.1.1
+langchain-google-genai>=0.0.6
+langchain-community>=0.0.20
+chromadb>=0.4.22
+streamlit>=1.32.0
+pandas>=2.2.0
+numpy>=1.26.0
+matplotlib>=3.8.0
+scikit-learn>=1.4.0
+python-dotenv>=1.0.0
+pytest>=8.0.0
+rapidfuzz>=3.0.0 

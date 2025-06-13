@@ -8,6 +8,20 @@ from pathlib import Path
 from datetime import datetime
 import pandas as pd
 import asyncio
+
+# Utility to safely run async functions in a synchronous context
+def run_async_task(coro):
+    """Run an async task, even if an event loop is already running."""
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(coro)
+    else:
+        new_loop = asyncio.new_event_loop()
+        try:
+            return new_loop.run_until_complete(coro)
+        finally:
+            new_loop.close()
 from langchain.docstore.document import Document
 
 from src.rag_core import RAGSystem
@@ -123,10 +137,18 @@ if question:
                 
                 # Calculer uniquement les métriques qui ne nécessitent pas de référence
                 try:
-                    response_relevancy = asyncio.run(st.session_state.evaluator.response_relevancy.single_turn_ascore(sample))
-                    context_precision = asyncio.run(st.session_state.evaluator.context_precision.single_turn_ascore(sample))
-                    context_recall = asyncio.run(st.session_state.evaluator.context_recall.single_turn_ascore(sample))
-                    faithfulness = asyncio.run(st.session_state.evaluator.faithfulness_metric.single_turn_ascore(sample))
+                    response_relevancy = run_async_task(
+                        st.session_state.evaluator.response_relevancy.single_turn_ascore(sample)
+                    )
+                    context_precision = run_async_task(
+                        st.session_state.evaluator.context_precision.single_turn_ascore(sample)
+                    )
+                    context_recall = run_async_task(
+                        st.session_state.evaluator.context_recall.single_turn_ascore(sample)
+                    )
+                    faithfulness = run_async_task(
+                        st.session_state.evaluator.faithfulness_metric.single_turn_ascore(sample)
+                    )
                 except Exception as e:
                     print(f"Erreur lors du calcul des métriques: {e}")
                     response_relevancy = 0.0

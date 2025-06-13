@@ -7,13 +7,10 @@ import streamlit as st
 from pathlib import Path
 from datetime import datetime
 import pandas as pd
-import asyncio
-from langchain.docstore.document import Document
+from src.evaluation import RAGEvaluator, context_overlap_score
 
 from src.rag_core import RAGSystem
-from src.evaluation import RAGEvaluator
 from src.format_pokeapi_data import create_pokemon_documents
-from ragas import SingleTurnSample
 
 # Configuration de la page (doit être la première commande Streamlit)
 st.set_page_config(
@@ -110,35 +107,14 @@ if question:
             
             # Évaluation de la réponse
             with st.spinner("Évaluation de la réponse..."):
-                # Convertir le contexte en objets Document
-                context_docs = [Document(page_content=ctx) for ctx in result["context"]]
-                
-                # Créer un SingleTurnSample pour les métriques RAGAS
-                sample = SingleTurnSample(
-                    prompt=question,
-                    response=result["answer"],
-                    reference="",  # Pas de référence pour l'évaluation en temps réel
-                    context=context_docs,
-                )
-                
-                # Calculer uniquement les métriques qui ne nécessitent pas de référence
-                try:
-                    response_relevancy = asyncio.run(st.session_state.evaluator.response_relevancy.single_turn_ascore(sample))
-                    context_precision = asyncio.run(st.session_state.evaluator.context_precision.single_turn_ascore(sample))
-                    context_recall = asyncio.run(st.session_state.evaluator.context_recall.single_turn_ascore(sample))
-                    faithfulness = asyncio.run(st.session_state.evaluator.faithfulness_metric.single_turn_ascore(sample))
-                except Exception as e:
-                    print(f"Erreur lors du calcul des métriques: {e}")
-                    response_relevancy = 0.0
-                    context_precision = 0.0
-                    context_recall = 0.0
-                    faithfulness = 0.0
+                overlap = context_overlap_score(result["answer"], result["context"])
+                faithfulness = overlap
             
             # Affichage des indicateurs de confiance
             st.subheader("Indicateurs de Confiance")
             
             # Création de colonnes pour les métriques
-            col1, col2, col3, col4 = st.columns(4)
+            col1, col2 = st.columns(2)
             
             # Fidélité (inverse de la probabilité d'hallucination)
             hallucination_prob = 1 - faithfulness
@@ -150,37 +126,16 @@ if question:
                     delta_color="inverse"
                 )
             
-            # Pertinence de la réponse
+            # Taux de recouvrement du contexte
             with col2:
                 st.metric(
-                    "Pertinence",
-                    f"{response_relevancy:.1%}",
-                    delta=None
-                )
-            
-            # Précision du contexte
-            with col3:
-                st.metric(
-                    "Précision du Contexte",
-                    f"{context_precision:.1%}",
-                    delta=None
-                )
-            
-            # Rappel du contexte
-            with col4:
-                st.metric(
-                    "Rappel du Contexte",
-                    f"{context_recall:.1%}",
+                    "Recouvrement du Contexte",
+                    f"{overlap:.1%}",
                     delta=None
                 )
             
             # Barre de progression pour la confiance globale
-            confidence_score = (
-                faithfulness * 0.4 +  # Poids plus important pour la fidélité
-                response_relevancy * 0.3 +
-                context_precision * 0.15 +
-                context_recall * 0.15
-            )
+            confidence_score = faithfulness
             
             st.progress(confidence_score, text="Confiance Globale")
             

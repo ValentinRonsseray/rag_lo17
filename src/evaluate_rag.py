@@ -9,7 +9,7 @@ import pandas as pd
 from datetime import datetime
 from typing import List, Dict, Any
 import sys
-from pathlib import Path
+import tempfile
 import shutil
 
 # Ajouter le répertoire racine au PYTHONPATH
@@ -79,39 +79,55 @@ async def run_evaluation():
     
     # Préparation des résultats
     results = []
-    output_dir = Path("evaluation_results")
     
-    # Supprimer le dossier d'évaluation précédent s'il existe
-    if output_dir.exists():
-        shutil.rmtree(output_dir)
-    output_dir.mkdir(exist_ok=True)
-    
-    # Évaluation de chaque question
-    print("\nDébut de l'évaluation...")
-    for i, test_case in enumerate(TEST_QUESTIONS, 1):
-        print(f"\nTest {i}/{len(TEST_QUESTIONS)}: {test_case['question']}")
+    # Créer un dossier temporaire pour les résultats
+    with tempfile.TemporaryDirectory(prefix="eval_results_") as output_dir:
+        output_dir = Path(output_dir)
         
-        # Obtention de la réponse
-        result = rag_system.query(test_case['question'])
+        # Évaluation de chaque question
+        print("\nDébut de l'évaluation...")
+        for i, test_case in enumerate(TEST_QUESTIONS, 1):
+            print(f"\nTest {i}/{len(TEST_QUESTIONS)}: {test_case['question']}")
+            
+            # Obtention de la réponse
+            result = rag_system.query(test_case['question'])
+            
+            # Évaluation
+            result_data = await evaluate_response(evaluator, result, test_case)
+            results.append(result_data)
+            
+            # Affichage des résultats
+            print(f"Type de recherche: {result.get('search_type', 'semantic')}")
+            print(f"Correspondance exacte: {result_data['exact_match']:.2f}")
+            print(f"Score F1: {result_data['f1_score']:.2f}")
+            print(f"Fidélité: {result_data['faithfulness']:.2f}")
         
-        # Évaluation
-        result_data = await evaluate_response(evaluator, result, test_case)
-        results.append(result_data)
+        # Création du DataFrame des résultats
+        results_df = pd.DataFrame(results)
         
-        # Affichage des résultats
-        print(f"Type de recherche: {result.get('search_type', 'semantic')}")
-        print(f"Correspondance exacte: {result_data['exact_match']:.2f}")
-        print(f"Score F1: {result_data['f1_score']:.2f}")
-        print(f"Fidélité: {result_data['faithfulness']:.2f}")
-    
-    # Création du DataFrame des résultats
-    results_df = pd.DataFrame(results)
-    
-    # Sauvegarde des résultats
-    results_df.to_csv(output_dir / "evaluation_results.csv", index=False)
-    
-    # Génération des graphiques
-    await evaluator.plot_results(results_df, output_dir)
+        # Sauvegarde des résultats
+        results_df.to_csv(output_dir / "evaluation_results.csv", index=False)
+        
+        # Génération des graphiques
+        await evaluator.plot_results(results_df, output_dir)
+        
+        # Copier les résultats dans le dossier final
+        final_dir = Path("evaluation_results")
+        try:
+            # Supprimer le dossier final s'il existe
+            if final_dir.exists():
+                shutil.rmtree(final_dir, ignore_errors=True)
+            
+            # Créer le dossier final
+            final_dir.mkdir(exist_ok=True)
+            
+            # Copier les fichiers un par un
+            for file in output_dir.glob("*"):
+                if file.is_file():
+                    shutil.copy2(file, final_dir / file.name)
+        except Exception as e:
+            print(f"Erreur lors de la copie des résultats : {e}")
+            # En cas d'erreur, on continue avec l'analyse des résultats
     
     # Analyse des résultats
     print("\nAnalyse des résultats:")

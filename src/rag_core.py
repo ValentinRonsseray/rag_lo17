@@ -95,8 +95,9 @@ class RAGSystem:
             embedding_model: Name of the embedding model to use
             temperature: Temperature for generation
         """
-        self.persist_directory = Path(persist_directory)
-        self.persist_directory.mkdir(parents=True, exist_ok=True)
+        # Utiliser un dossier temporaire pour la base de données
+        import tempfile
+        self.persist_directory = Path(tempfile.mkdtemp(prefix="chroma_db_"))
         
         # Initialize models
         self.embeddings = GoogleGenerativeAIEmbeddings(model=embedding_model)
@@ -135,12 +136,35 @@ class RAGSystem:
         Args:
             documents: List of documents to embed
         """
-        self.vectorstore = Chroma.from_documents(
-            documents=documents,
-            embedding=self.embeddings,
-            persist_directory=str(self.persist_directory)
-        )
-        self.retriever = self.vectorstore.as_retriever(search_kwargs={"k": 3})
+        try:
+            # Créer une nouvelle base de données dans le dossier temporaire
+            self.vectorstore = Chroma.from_documents(
+                documents=documents,
+                embedding=self.embeddings,
+                persist_directory=str(self.persist_directory)
+            )
+            self.retriever = self.vectorstore.as_retriever(search_kwargs={"k": 3})
+            
+            # Sauvegarder la base de données
+            self.vectorstore.persist()
+        except Exception as e:
+            print(f"Erreur lors de l'intégration des documents : {e}")
+            # Nettoyer en cas d'erreur
+            self.cleanup()
+            raise
+    
+    def cleanup(self):
+        """Nettoyer les ressources."""
+        try:
+            if self.persist_directory.exists():
+                import shutil
+                shutil.rmtree(self.persist_directory, ignore_errors=True)
+        except Exception as e:
+            print(f"Erreur lors du nettoyage : {e}")
+    
+    def __del__(self):
+        """Destructeur pour nettoyer les ressources."""
+        self.cleanup()
     
     def format_docs(self, docs: List[Document]) -> str:
         """Format documents for the prompt.
@@ -212,13 +236,20 @@ class RAGSystem:
                 }
         
         # Si aucune recherche exacte n'est possible, utiliser la recherche vectorielle
-        docs = self.retriever.invoke(question)  # Utiliser invoke au lieu de get_relevant_documents
-        chain = self.create_chain()
-        answer = chain.invoke(question)
-        
-        return {
-            "answer": answer,
-            "context": [doc.page_content for doc in docs],
-            "metadata": [doc.metadata for doc in docs],
-            "search_type": "semantic"
-        } 
+        try:
+            docs = self.retriever.invoke(question)
+            chain = self.create_chain()
+            answer = chain.invoke(question)
+            
+            return {
+                "answer": answer,
+                "context": [doc.page_content for doc in docs],
+                "metadata": [doc.metadata for doc in docs],
+                "search_type": "semantic"
+            }
+        except Exception as e:
+            print(f"Erreur lors de la recherche vectorielle: {e}")
+            # En cas d'erreur, réinitialiser la base de données
+            self.vectorstore = None
+            self.retriever = None
+            raise ValueError("Erreur de la base de données vectorielle. Veuillez réinitialiser l'application.") 

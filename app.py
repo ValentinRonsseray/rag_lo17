@@ -28,15 +28,19 @@ if "evaluator" not in st.session_state:
 # Chargement et intégration des données
 if "data_embedded" not in st.session_state:
     with st.spinner("Chargement des données Pokémon depuis PokeAPI..."):
-        # Chargement des documents Pokémon depuis PokeAPI
-        pokemon_documents = create_pokemon_documents()
-        
-        # Intégration des documents
-        st.info("Intégration des documents dans le système RAG...")
-        st.session_state.rag_system.embed_documents(pokemon_documents)
-        st.session_state.data_embedded = True
-        st.session_state.num_pokemon = len(pokemon_documents)
-        st.success(f"Intégration terminée ! {len(pokemon_documents)} documents chargés.")
+        try:
+            # Chargement des documents Pokémon depuis PokeAPI
+            pokemon_documents = create_pokemon_documents()
+            
+            # Intégration des documents
+            st.info("Intégration des documents dans le système RAG...")
+            st.session_state.rag_system.embed_documents(pokemon_documents)
+            st.session_state.data_embedded = True
+            st.session_state.num_pokemon = len(pokemon_documents)
+            st.success(f"Intégration terminée ! {len(pokemon_documents)} documents chargés.")
+        except Exception as e:
+            st.error(f"Erreur lors du chargement des données : {e}")
+            st.session_state.data_embedded = False
 
 # Titre et description
 st.title("⚡ Pokédex IA - Système de Questions-Réponses")
@@ -90,66 +94,76 @@ question = st.text_input("Entrez votre question:")
 if question:
     # Obtention de la réponse
     with st.spinner("Génération de la réponse..."):
-        result = st.session_state.rag_system.query(question)
-        
-        # Affichage du type de recherche
-        search_type = result.get("search_type", "semantic")
-        if search_type == "exact":
-            st.success("Recherche exacte (index inverse)")
-            # Pour les recherches exactes, on n'affiche pas les métriques de confiance
-            st.subheader("Réponse")
-            st.write(result["answer"])
-        else:
-            st.info("Recherche sémantique (vecteurs)")
-            # Affichage de la réponse
-            st.subheader("Réponse")
-            st.write(result["answer"])
+        try:
+            result = st.session_state.rag_system.query(question)
             
-            # Évaluation de la réponse
-            with st.spinner("Évaluation de la réponse..."):
-                overlap = context_overlap_score(result["answer"], result["context"])
-                faithfulness = overlap
-            
-            # Affichage des indicateurs de confiance
-            st.subheader("Indicateurs de Confiance")
-            
-            # Création de colonnes pour les métriques
-            col1, col2 = st.columns(2)
-            
-            # Fidélité (inverse de la probabilité d'hallucination)
-            hallucination_prob = 1 - faithfulness
-            with col1:
-                st.metric(
-                    "Probabilité d'Hallucination",
-                    f"{hallucination_prob:.1%}",
-                    delta=None,
-                    delta_color="inverse"
-                )
-            
-            # Taux de recouvrement du contexte
-            with col2:
-                st.metric(
-                    "Recouvrement du Contexte",
-                    f"{overlap:.1%}",
-                    delta=None
-                )
-            
-            # Barre de progression pour la confiance globale
-            confidence_score = faithfulness
-            
-            st.progress(confidence_score, text="Confiance Globale")
-            
-            # Avertissement si probabilité d'hallucination élevée
-            if hallucination_prob > 0.3:
-                st.warning("⚠️ Attention : Cette réponse pourrait contenir des informations incorrectes ou inventées.")
-            
-            # Affichage du contexte (uniquement pour la recherche sémantique)
-            if result["context"]:
-                with st.expander("Voir le Contexte Récupéré"):
-                    for i, ctx in enumerate(result["context"], 1):
-                        st.markdown(f"**Contexte {i}:**")
-                        st.write(ctx)
-                        st.markdown("---")
+            # Affichage du type de recherche
+            search_type = result.get("search_type", "semantic")
+            if search_type == "exact":
+                st.success("Recherche exacte (index inverse)")
+                # Pour les recherches exactes, on n'affiche pas les métriques de confiance
+                st.subheader("Réponse")
+                st.write(result["answer"])
+            else:
+                st.info("Recherche sémantique (vecteurs)")
+                # Affichage de la réponse
+                st.subheader("Réponse")
+                st.write(result["answer"])
+                
+                # Évaluation de la réponse
+                with st.spinner("Évaluation de la réponse..."):
+                    overlap = context_overlap_score(result["answer"], result["context"])
+                    faithfulness = overlap
+                
+                # Affichage des indicateurs de confiance
+                st.subheader("Indicateurs de Confiance")
+                
+                # Création de colonnes pour les métriques
+                col1, col2 = st.columns(2)
+                
+                # Fidélité (inverse de la probabilité d'hallucination)
+                hallucination_prob = 1 - faithfulness
+                with col1:
+                    st.metric(
+                        "Probabilité d'Hallucination",
+                        f"{hallucination_prob:.1%}",
+                        delta=None,
+                        delta_color="inverse"
+                    )
+                
+                # Taux de recouvrement du contexte
+                with col2:
+                    st.metric(
+                        "Recouvrement du Contexte",
+                        f"{overlap:.1%}",
+                        delta=None
+                    )
+                
+                # Barre de progression pour la confiance globale
+                confidence_score = faithfulness
+                
+                st.progress(confidence_score, text="Confiance Globale")
+                
+                # Avertissement si probabilité d'hallucination élevée
+                if hallucination_prob > 0.3:
+                    st.warning("⚠️ Attention : Cette réponse pourrait contenir des informations incorrectes ou inventées.")
+                
+                # Affichage du contexte (uniquement pour la recherche sémantique)
+                if result["context"]:
+                    with st.expander("Voir le Contexte Récupéré"):
+                        for i, ctx in enumerate(result["context"], 1):
+                            st.markdown(f"**Contexte {i}:**")
+                            st.write(ctx)
+                            st.markdown("---")
+        except ValueError as e:
+            st.error(str(e))
+            if "réinitialiser l'application" in str(e).lower():
+                st.session_state.data_embedded = False
+                st.rerun()
+        except Exception as e:
+            st.error(f"Une erreur est survenue : {e}")
+            st.session_state.data_embedded = False
+            st.rerun()
 
 # Section d'évaluation
 st.header("Évaluation")

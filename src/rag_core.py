@@ -4,13 +4,13 @@ from typing import List, Dict, Any, Optional
 from pathlib import Path
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
+# charge les variables d'environnement
 load_dotenv()
 
-# Get API key from environment
+# récupère la clé api
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 if not GOOGLE_API_KEY:
-    raise ValueError("GOOGLE_API_KEY not found in environment variables or .env file")
+    raise ValueError("GOOGLE_API_KEY non trouvée")
 
 from langchain_core.prompts import PromptTemplate
 from langchain.docstore.document import Document
@@ -27,6 +27,7 @@ class HybridIndex:
         self.load_indexes()
     
     def load_indexes(self):
+        """charge les index"""
         index_files = {
             "type": "type_index.json",
             "status": "status_index.json",
@@ -42,15 +43,19 @@ class HybridIndex:
                     self.indexes[index_name] = json.load(f)
     
     def search_by_type(self, type_name: str) -> List[str]:
+        """recherche par type"""
         return self.indexes.get("type", {}).get(type_name, [])
     
     def search_by_status(self, status: str) -> List[str]:
+        """recherche par statut"""
         return self.indexes.get("status", {}).get(status, [])
     
     def search_by_habitat(self, habitat: str) -> List[str]:
+        """recherche par habitat"""
         return self.indexes.get("habitat", {}).get(habitat, [])
     
     def search_by_color(self, color: str) -> List[str]:
+        """recherche par couleur"""
         return self.indexes.get("color", {}).get(color, [])
 
 class RAGSystem:
@@ -61,23 +66,23 @@ class RAGSystem:
         embedding_model: str = "models/embedding-001",
         temperature: float = 0.0,
     ):
-        # Utiliser un dossier temporaire pour la base de données
+        # dossier temporaire pour la bdd
         import tempfile
         self.persist_directory = Path(tempfile.mkdtemp(prefix="chroma_db_"))
         
-        # Initialize models
-        self.embeddings = GoogleGenerativeAIEmbeddings(model=embedding_model) #ici "models/embedding-001"
+        # init des modèles
+        self.embeddings = GoogleGenerativeAIEmbeddings(model=embedding_model)
         self.llm = ChatGoogleGenerativeAI(
             model=model_name,
             temperature=temperature
         )
         
-        # Initialize vector store and hybrid index
+        # init du stockage et de l'index
         self.vectorstore = None
         self.retriever = None
         self.hybrid_index = HybridIndex()
         
-        # Initialize prompt template
+        # template du prompt
         self.prompt_template = PromptTemplate.from_template(
             """You are an expert Pokémon encyclopedia assistant. Your role is to provide detailed and engaging information about Pokémon.
             Use the following context to answer the question. If you don't know the answer, just say that you don't know.
@@ -97,13 +102,9 @@ class RAGSystem:
         )
     
     def embed_documents(self, documents: List[Document]) -> None:
-        """Embed documents and store them in Chroma.
-        
-        Args:
-            documents: List of documents to embed
-        """
+        """intègre les documents dans chroma"""
         try:
-            # Créer une nouvelle base de données dans le dossier temporaire
+            # crée une nouvelle bdd
             self.vectorstore = Chroma.from_documents(
                 documents=documents,
                 embedding=self.embeddings,
@@ -111,40 +112,33 @@ class RAGSystem:
             )
             self.retriever = self.vectorstore.as_retriever(search_kwargs={"k": 3})
             
-            # Sauvegarder la base de données
+            # sauvegarde la bdd
             self.vectorstore.persist()
         except Exception as e:
-            print(f"Erreur lors de l'intégration des documents : {e}")
-            # Nettoyer en cas d'erreur
+            print(f"erreur d'intégration : {e}")
+            # nettoie en cas d'erreur
             self.cleanup()
             raise
     
     def cleanup(self):
-        """Nettoyer les ressources."""
+        """nettoie les ressources"""
         try:
             if self.persist_directory.exists():
                 import shutil
                 shutil.rmtree(self.persist_directory, ignore_errors=True)
         except Exception as e:
-            print(f"Erreur lors du nettoyage : {e}")
+            print(f"erreur de nettoyage : {e}")
     
     def __del__(self):
-        """Destructeur pour nettoyer les ressources."""
+        """destructeur"""
         self.cleanup()
     
     def format_docs(self, docs: List[Document]) -> str:
-        """Format documents for the prompt.
-        
-        Args:
-            docs: List of documents to format
-            
-        Returns:
-            Formatted string
-        """
+        """formate les docs pour le prompt"""
         return "\n\n".join(doc.page_content for doc in docs)
     
     def create_chain(self):
-        """Create the RAG chain."""
+        """crée la chaîne rag"""
         return (
             {"context": self.retriever | self.format_docs, "question": RunnablePassthrough()}
             | self.prompt_template
@@ -153,21 +147,14 @@ class RAGSystem:
         )
     
     def query(self, question: str) -> Dict[str, Any]:
-        """Query the RAG system.
-        
-        Args:
-            question: Question to ask
-            
-        Returns:
-            Dictionary containing the answer and retrieved context
-        """
+        """interroge le système rag"""
         if not self.retriever:
-            raise ValueError("No documents have been embedded yet. Call embed_documents first.")
+            raise ValueError("pas de documents intégrés")
         
-        # Analyse de la question pour déterminer le type de recherche
+        # analyse de la question
         question_lower = question.lower()
         
-        # Recherche par type
+        # recherche par type
         if any(keyword in question_lower for keyword in ["type", "est de type", "sont de type", "liste", "quels sont"]):
             for type_name in self.hybrid_index.indexes.get("type", {}).keys():
                 if type_name in question_lower:
@@ -180,7 +167,7 @@ class RAGSystem:
                             "search_type": "exact"
                         }
         
-        # Recherche par statut
+        # recherche par statut
         if any(keyword in question_lower for keyword in ["légendaire", "legendary", "légendaires", "legendaries"]):
             pokemon_names = self.hybrid_index.search_by_status("legendary")
             if pokemon_names:
@@ -201,7 +188,7 @@ class RAGSystem:
                     "search_type": "exact"
                 }
         
-        # Si aucune recherche exacte n'est possible, utiliser la recherche vectorielle
+        # recherche vectorielle par défaut
         try:
             docs = self.retriever.invoke(question)
             chain = self.create_chain()
@@ -214,8 +201,8 @@ class RAGSystem:
                 "search_type": "semantic"
             }
         except Exception as e:
-            print(f"Erreur lors de la recherche vectorielle: {e}")
-            # En cas d'erreur, réinitialiser la base de données
+            print(f"erreur de recherche : {e}")
+            # réinitialise la bdd en cas d'erreur
             self.vectorstore = None
             self.retriever = None
-            raise ValueError("Erreur de la base de données vectorielle. Veuillez réinitialiser l'application.") 
+            raise ValueError("erreur de la bdd vectorielle") 

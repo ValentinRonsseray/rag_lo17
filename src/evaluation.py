@@ -1,5 +1,5 @@
 """
-Evaluation module for the RAG system.
+module d'évaluation du système rag
 """
 
 import json
@@ -13,32 +13,25 @@ from dotenv import load_dotenv
 from langchain.evaluation import load_evaluator
 from langchain.evaluation.schema import StringEvaluator
 
-# Load environment variables
+# charge les variables d'environnement
 load_dotenv()
 
 def normalize_text(text: str) -> str:
-    """Normalize text for comparison.
-    
-    Args:
-        text: Text to normalize
-        
-    Returns:
-        Normalized text
-    """
-    # Convert to lowercase
+    """normalise le texte pour comparaison"""
+    # minuscules
     text = text.lower()
-    # Remove punctuation
+    # supprime la ponctuation
     text = re.sub(r'[^\w\s]', '', text)
-    # Remove extra whitespace
+    # supprime les espaces en trop
     text = ' '.join(text.split())
     return text
 
 def exact_match_score(prediction: str, reference: str) -> float:
-    """Calculate exact match score (0 or 1)."""
+    """calcule le score de correspondance exacte"""
     return float(normalize_text(prediction) == normalize_text(reference))
 
 def f1_score_text(prediction: str, reference: str) -> float:
-    """Calculate F1 score for text."""
+    """calcule le score f1 pour le texte"""
     pred_tokens = set(normalize_text(prediction).split())
     ref_tokens = set(normalize_text(reference).split())
     if not pred_tokens or not ref_tokens:
@@ -50,9 +43,8 @@ def f1_score_text(prediction: str, reference: str) -> float:
         return 0.0
     return 2 * (precision * recall) / (precision + recall)
 
-
 def context_overlap_score(prediction: str, context: List[str]) -> float:
-    """Calculate the proportion of words in the prediction that appear in the context."""
+    """calcule le recouvrement avec le contexte"""
     pred_tokens = set(normalize_text(prediction).split())
     context_tokens: set[str] = set()
     for ctx in context:
@@ -64,9 +56,9 @@ def context_overlap_score(prediction: str, context: List[str]) -> float:
 
 class RAGEvaluator:
     def __init__(self, llm_evaluator: StringEvaluator = None):
-        """Initialize the RAG evaluator with lightweight metrics."""
+        """init de l'évaluateur rag"""
 
-        # Default string-distance evaluator if none provided
+        # évaluateur par défaut
         self.llm_evaluator = llm_evaluator or load_evaluator("string_distance")
 
     async def evaluate_response(
@@ -75,21 +67,12 @@ class RAGEvaluator:
         reference: str,
         context: List[str]
     ) -> Dict[str, float]:
-        """Evaluate a single response.
-        
-        Args:
-            prediction: Predicted answer
-            reference: Reference answer
-            context: Retrieved context (list of strings)
-        
-        Returns:
-            Dictionary of scores
-        """
-        # Built-in string metrics
+        """évalue une réponse"""
+        # métriques de base
         em_score = exact_match_score(prediction, reference)
         f1 = f1_score_text(prediction, reference)
 
-        # Simple overlap metric between the answer and the retrieved context
+        # métrique de recouvrement
         overlap = context_overlap_score(prediction, context)
         faith_score = overlap
 
@@ -106,7 +89,7 @@ class RAGEvaluator:
         references: List[str],
         contexts: List[List[str]]
     ) -> pd.DataFrame:
-        """Evaluate a dataset of responses."""
+        """évalue un jeu de données"""
         results = []
         for pred, ref, ctx in zip(predictions, references, contexts):
             scores = await self.evaluate_response(pred, ref, ctx)
@@ -118,10 +101,10 @@ class RAGEvaluator:
         results_df: pd.DataFrame,
         output_dir: Path
     ):
-        """Plot evaluation results for all metrics."""
+        """trace les résultats d'évaluation"""
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        # Sélectionner uniquement les colonnes numériques pour les graphiques
+        # colonnes numériques pour les graphiques
         numeric_columns = results_df.select_dtypes(include=['float64', 'int64']).columns
         num = len(numeric_columns)
         cols = min(4, num)
@@ -133,10 +116,10 @@ class RAGEvaluator:
             ax = axes_list[idx]
             ax.hist(results_df[metric], bins=10)
             ax.set_title(metric.replace('_', ' ').title())
-            ax.set_xlabel("Score")
-            ax.set_ylabel("Count")
+            ax.set_xlabel("score")
+            ax.set_ylabel("compte")
 
-        # Hide unused subplots
+        # cache les sous-graphiques inutilisés
         for idx in range(num, len(axes_list)):
             axes_list[idx].axis('off')
 
@@ -144,18 +127,18 @@ class RAGEvaluator:
         plt.savefig(output_dir / "evaluation_metrics.png")
         plt.close(fig)
 
-        # Save results to CSV
+        # sauvegarde les résultats
         results_df.to_csv(output_dir / "eval_metrics.csv", index=False)
 
-        # Print summary
-        print("\nEvaluation Summary:")
-        print("\nMétriques numériques:")
+        # affiche le résumé
+        print("\nrésumé de l'évaluation:")
+        print("\nmétriques numériques:")
         print(results_df[numeric_columns].mean())
         
-        # Afficher les résultats non numériques
+        # affiche les résultats non numériques
         non_numeric_columns = results_df.select_dtypes(exclude=['float64', 'int64']).columns
         if len(non_numeric_columns) > 0:
-            print("\nRésultats non numériques:")
+            print("\nrésultats non numériques:")
             for col in non_numeric_columns:
                 print(f"\n{col}:")
                 print(results_df[col].value_counts())

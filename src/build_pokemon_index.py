@@ -1,6 +1,5 @@
 """
-Script pour construire des index inverses des Pokémon basés sur leurs caractéristiques.
-(Remarque : les chaînes d'évolution ne sont plus indexées comme demandé.)
+script de construction des index pokémon
 """
 
 import json
@@ -10,7 +9,7 @@ from collections import defaultdict
 
 
 def load_pokemon_data() -> List[Dict[str, Any]]:
-    """Charge les données Pokémon depuis les fichiers JSON présents dans data/pokeapi."""
+    """charge les données pokémon"""
     data_dir = "data/pokeapi"
     pokemon_data: List[Dict[str, Any]] = []
 
@@ -27,7 +26,7 @@ def load_pokemon_data() -> List[Dict[str, Any]]:
 # ---------------------------------------------------------------------------
 
 def build_type_index(pokemon_data: List[Dict[str, Any]]) -> Dict[str, List[str]]:
-    """Construit un index des Pokémon par type principal / secondaire."""
+    """construit l'index par type"""
     type_index: Dict[str, List[str]] = defaultdict(list)
 
     for pokemon in pokemon_data:
@@ -44,7 +43,7 @@ def build_type_index(pokemon_data: List[Dict[str, Any]]) -> Dict[str, List[str]]
 # ---------------------------------------------------------------------------
 
 def build_status_index(pokemon_data: List[Dict[str, Any]]) -> Dict[str, List[str]]:
-    """Construit un index des Pokémon par statut (légendaire, mythique, bébé)."""
+    """construit l'index par statut"""
     status_index: Dict[str, List[str]] = {
         "legendary": [],
         "mythical": [],
@@ -70,7 +69,7 @@ def build_status_index(pokemon_data: List[Dict[str, Any]]) -> Dict[str, List[str
 # ---------------------------------------------------------------------------
 
 def build_habitat_index(pokemon_data: List[Dict[str, Any]]) -> Dict[str, List[str]]:
-    """Construit un index des Pokémon par habitat."""
+    """construit l'index par habitat"""
     habitat_index: Dict[str, List[str]] = defaultdict(list)
 
     for pokemon in pokemon_data:
@@ -91,7 +90,7 @@ def build_habitat_index(pokemon_data: List[Dict[str, Any]]) -> Dict[str, List[st
 # ---------------------------------------------------------------------------
 
 def build_color_index(pokemon_data: List[Dict[str, Any]]) -> Dict[str, List[str]]:
-    """Construit un index des Pokémon par couleur."""
+    """construit l'index par couleur"""
     color_index: Dict[str, List[str]] = defaultdict(list)
 
     for pokemon in pokemon_data:
@@ -112,7 +111,7 @@ def build_color_index(pokemon_data: List[Dict[str, Any]]) -> Dict[str, List[str]
 # ---------------------------------------------------------------------------
 
 def save_index(index: Dict[str, Any], filename: str):
-    """Sauvegarde un index dans un fichier JSON sous data/indexes."""
+    """sauvegarde un index"""
     output_dir = "data/indexes"
     os.makedirs(output_dir, exist_ok=True)
 
@@ -126,30 +125,30 @@ def save_index(index: Dict[str, Any], filename: str):
 # ---------------------------------------------------------------------------
 
 def main():
-    print("Chargement des données Pokémon…")
+    print("chargement des données…")
     pokemon_data = load_pokemon_data()
 
-    print("Construction des index (hors évolutions)…")
+    print("construction des index…")
 
     type_index = build_type_index(pokemon_data)
     status_index = build_status_index(pokemon_data)
     habitat_index = build_habitat_index(pokemon_data)
     color_index = build_color_index(pokemon_data)
 
-    print("Sauvegarde des index…")
+    print("sauvegarde des index…")
     save_index(type_index, "type_index.json")
     save_index(status_index, "status_index.json")
     save_index(habitat_index, "habitat_index.json")
     save_index(color_index, "color_index.json")
 
-    # Statistiques rapides
-    print("\nStatistiques des index :")
-    print(f"Nombre de types différents : {len(type_index)}")
-    print(f"Nombre de Pokémon légendaires : {len(status_index['legendary'])}")
-    print(f"Nombre de Pokémon mythiques : {len(status_index['mythical'])}")
-    print(f"Nombre de bébés Pokémon : {len(status_index['baby'])}")
-    print(f"Nombre d'habitats différents : {len(habitat_index)}")
-    print(f"Nombre de couleurs différentes : {len(color_index)}")
+    # stats
+    print("\nstats des index :")
+    print(f"nombre de types : {len(type_index)}")
+    print(f"nombre de légendaires : {len(status_index['legendary'])}")
+    print(f"nombre de mythiques : {len(status_index['mythical'])}")
+    print(f"nombre de bébés : {len(status_index['baby'])}")
+    print(f"nombre d'habitats : {len(habitat_index)}")
+    print(f"nombre de couleurs : {len(color_index)}")
 
 
 if __name__ == "__main__":

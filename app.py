@@ -1,6 +1,4 @@
-"""
-Application Streamlit pour le système RAG Pokémon.
-"""
+
 
 import os
 import streamlit as st
@@ -12,37 +10,37 @@ from src.evaluation import RAGEvaluator, context_overlap_score
 from src.rag_core import RAGSystem
 from src.format_pokeapi_data import create_pokemon_documents
 
-# Configuration de la page (doit être la première commande Streamlit)
+# config de la page
 st.set_page_config(
     page_title="Pokédex IA - Système de Questions-Réponses",
     page_icon="⚡",
     layout="wide"
 )
 
-# Initialisation de l'état de la session
+# init de l'état
 if "rag_system" not in st.session_state:
     st.session_state.rag_system = RAGSystem()
 if "evaluator" not in st.session_state:
     st.session_state.evaluator = RAGEvaluator()
 
-# Chargement et intégration des données
+# chargement des données
 if "data_embedded" not in st.session_state:
-    with st.spinner("Chargement des données Pokémon depuis PokeAPI..."):
+    with st.spinner("chargement des données..."):
         try:
-            # Chargement des documents Pokémon depuis PokeAPI
+            # charge les documents
             pokemon_documents = create_pokemon_documents()
             
-            # Intégration des documents
-            st.info("Intégration des documents dans le système RAG...")
+            # intègre les documents
+            st.info("intégration des documents...")
             st.session_state.rag_system.embed_documents(pokemon_documents)
             st.session_state.data_embedded = True
             st.session_state.num_pokemon = len(pokemon_documents)
-            st.success(f"Intégration terminée ! {len(pokemon_documents)} documents chargés.")
+            st.success(f"intégration terminée ! {len(pokemon_documents)} documents chargés.")
         except Exception as e:
-            st.error(f"Erreur lors du chargement des données : {e}")
+            st.error(f"erreur de chargement : {e}")
             st.session_state.data_embedded = False
 
-# Titre et description
+# titre et description
 st.title("⚡ Pokédex IA - Système de Questions-Réponses")
 st.markdown("""
 Cette application utilise un système RAG (Retrieval-Augmented Generation) pour répondre à vos questions
@@ -61,98 +59,97 @@ Le système utilise un index hybride qui combine :
 - Index inverses pour les recherches exactes (types, statuts, etc.)
 """)
 
-# Barre latérale
+# barre latérale
 with st.sidebar:
-    st.header("Paramètres")
+    st.header("paramètres")
     
-    # Paramètres du modèle
-    st.subheader("Paramètres du Modèle")
-    temperature = st.slider("Température", 0.0, 1.0, 0.0, 0.1)
+    # paramètres du modèle
+    st.subheader("paramètres du modèle")
+    temperature = st.slider("température", 0.0, 1.0, 0.0, 0.1)
     
-    # Statistiques des données
-    st.subheader("Statistiques des Données")
+    # stats des données
+    st.subheader("stats des données")
     if "data_embedded" in st.session_state:
-        st.write(f"Nombre de Pokémon : {st.session_state.num_pokemon}")
-        st.write("Sources : PokeAPI")
+        st.write(f"nombre de pokémon : {st.session_state.num_pokemon}")
+        st.write("sources : pokeapi")
     
-    # Exemples de questions
-    st.subheader("Exemples de Questions")
+    # exemples de questions
+    st.subheader("exemples de questions")
     st.markdown("""
-    - Quels sont les Pokémon de type feu ?
-    - Liste les Pokémon légendaires
-    - Quels sont les Pokémon mythiques ?
-    - Décris-moi Pikachu
-    - Quelles sont les statistiques de base de Charizard ?
+    - quels sont les pokémon de type feu ?
+    - liste les pokémon légendaires
+    - quels sont les pokémon mythiques ?
+    - décris-moi pikachu
+    - quelles sont les stats de base de charizard ?
     """)
 
-# Contenu principal
-st.header("Posez votre Question")
+# contenu principal
+st.header("posez votre question")
 
-# Saisie de la question
-question = st.text_input("Entrez votre question:")
+# saisie de la question
+question = st.text_input("entrez votre question:")
 
 if question:
-    # Obtention de la réponse
-    with st.spinner("Génération de la réponse..."):
+    # obtention de la réponse
+    with st.spinner("génération de la réponse..."):
         try:
             result = st.session_state.rag_system.query(question)
             
-            # Affichage du type de recherche
+            # affichage du type de recherche
             search_type = result.get("search_type", "semantic")
             if search_type == "exact":
-                st.success("Recherche exacte (index inverse)")
-                # Pour les recherches exactes, on n'affiche pas les métriques de confiance
-                st.subheader("Réponse")
+                st.success("recherche exacte (index inverse)")
+                # pas de métriques pour les recherches exactes
+                st.subheader("réponse")
                 st.write(result["answer"])
             else:
-                st.info("Recherche sémantique (vecteurs)")
-                # Affichage de la réponse
-                st.subheader("Réponse")
+                st.info("recherche sémantique (vecteurs)")
+                # affichage de la réponse
+                st.subheader("réponse")
                 st.write(result["answer"])
                 
-                # Évaluation de la réponse
-                with st.spinner("Évaluation de la réponse..."):
+                # évaluation de la réponse
+                with st.spinner("évaluation de la réponse..."):
                     overlap = context_overlap_score(result["answer"], result["context"])
                     faithfulness = overlap
                 
-                # Affichage des indicateurs de confiance
-                st.subheader("Indicateurs de Confiance")
+                # indicateurs de confiance
+                st.subheader("indicateurs de confiance")
                 
-                # Création de colonnes pour les métriques
+                # colonnes pour les métriques
                 col1, col2 = st.columns(2)
                 
-                # Fidélité (inverse de la probabilité d'hallucination)
+                # fidélité
                 hallucination_prob = 1 - faithfulness
                 with col1:
                     st.metric(
-                        "Probabilité d'Hallucination",
+                        "probabilité d'hallucination",
                         f"{hallucination_prob:.1%}",
                         delta=None,
                         delta_color="inverse"
                     )
                 
-                # Taux de recouvrement du contexte
+                # recouvrement du contexte
                 with col2:
                     st.metric(
-                        "Recouvrement du Contexte",
+                        "recouvrement du contexte",
                         f"{overlap:.1%}",
                         delta=None
                     )
                 
-                # Barre de progression pour la confiance globale
+                # barre de confiance
                 confidence_score = faithfulness
+                st.progress(confidence_score, text="confiance globale")
                 
-                st.progress(confidence_score, text="Confiance Globale")
-                
-                # Avertissement si probabilité d'hallucination élevée
+                # avertissement si hallucination élevée
                 if hallucination_prob > 0.3:
-                    st.warning("⚠️ Attention : Cette réponse pourrait contenir des informations incorrectes ou inventées.")
+                    st.warning("⚠️ attention : réponse potentiellement incorrecte")
                 
-                # Affichage du contexte (uniquement pour la recherche sémantique)
+                # affichage du contexte
                 if result["context"]:
-                    with st.expander("Voir le Contexte Récupéré"):
+                    with st.expander("voir le contexte"):
                         for i, ctx in enumerate(result["context"], 1):
-                            st.markdown(f"**Contexte {i}:**")
+                            st.markdown(f"**contexte {i}:**")
                             st.write(ctx)
                             st.markdown("---")
         except ValueError as e:
@@ -161,21 +158,21 @@ if question:
                 st.session_state.data_embedded = False
                 st.rerun()
         except Exception as e:
-            st.error(f"Une erreur est survenue : {e}")
+            st.error(f"erreur : {e}")
             st.session_state.data_embedded = False
             st.rerun()
 
-# Section d'évaluation
-st.header("Évaluation")
-with st.expander("Ajouter une Réponse de Référence"):
-    reference = st.text_area("Entrez la réponse de référence:")
-    if st.button("Sauvegarder la Référence"):
+# section d'évaluation
+st.header("évaluation")
+with st.expander("ajouter une référence"):
+    reference = st.text_area("entrez la réponse de référence:")
+    if st.button("sauvegarder la référence"):
         st.session_state.reference_answer = reference
-        st.success("Réponse de référence sauvegardée!")
+        st.success("référence sauvegardée!")
 
-# Journal des hallucinations
+# journal des hallucinations
 if "answer" in locals() and "reference_answer" in st.session_state:
-    if faithfulness < 0.7:  # Seuil pour l'hallucination
+    if faithfulness < 0.7:  # seuil d'hallucination
         log_path = Path("hallucinations.csv")
         log_df = pd.DataFrame([{
             "timestamp": datetime.now(),

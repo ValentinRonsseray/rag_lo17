@@ -21,30 +21,12 @@ from langchain_community.vectorstores import Chroma
 from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
 
 class HybridIndex:
-    """
-    Index hybride combinant recherche vectorielle et index inverses.
-    
-    Avantages de l'index hybride :
-    1. Recherche sémantique : La recherche vectorielle permet de trouver des documents
-       pertinents même si les termes exacts ne sont pas présents.
-    2. Recherche exacte : Les index inverses permettent de trouver rapidement des
-       Pokémon par leurs caractéristiques spécifiques (type, statut, etc.).
-    3. Performance : Les index inverses sont très rapides pour les requêtes exactes.
-    4. Flexibilité : Permet de combiner les deux approches selon le type de requête.
-    """
-    
     def __init__(self, indexes_dir: str = "data/indexes"):
-        """Initialise l'index hybride.
-        
-        Args:
-            indexes_dir: Répertoire contenant les index inverses
-        """
         self.indexes_dir = Path(indexes_dir)
         self.indexes = {}
         self.load_indexes()
     
     def load_indexes(self):
-        """Charge tous les index inverses."""
         index_files = {
             "type": "type_index.json",
             "status": "status_index.json",
@@ -60,19 +42,15 @@ class HybridIndex:
                     self.indexes[index_name] = json.load(f)
     
     def search_by_type(self, type_name: str) -> List[str]:
-        """Recherche les Pokémon par type."""
         return self.indexes.get("type", {}).get(type_name, [])
     
     def search_by_status(self, status: str) -> List[str]:
-        """Recherche les Pokémon par statut (légendaire, mythique, bébé)."""
         return self.indexes.get("status", {}).get(status, [])
     
     def search_by_habitat(self, habitat: str) -> List[str]:
-        """Recherche les Pokémon par habitat."""
         return self.indexes.get("habitat", {}).get(habitat, [])
     
     def search_by_color(self, color: str) -> List[str]:
-        """Recherche les Pokémon par couleur."""
         return self.indexes.get("color", {}).get(color, [])
 
 class RAGSystem:
@@ -83,20 +61,12 @@ class RAGSystem:
         embedding_model: str = "models/embedding-001",
         temperature: float = 0.0,
     ):
-        """Initialize the RAG system.
-        
-        Args:
-            persist_directory: Directory to persist the vector store
-            model_name: Name of the Gemini model to use
-            embedding_model: Name of the embedding model to use
-            temperature: Temperature for generation
-        """
         # Utiliser un dossier temporaire pour la base de données
         import tempfile
         self.persist_directory = Path(tempfile.mkdtemp(prefix="chroma_db_"))
         
         # Initialize models
-        self.embeddings = GoogleGenerativeAIEmbeddings(model=embedding_model)
+        self.embeddings = GoogleGenerativeAIEmbeddings(model=embedding_model) #ici "models/embedding-001"
         self.llm = ChatGoogleGenerativeAI(
             model=model_name,
             temperature=temperature

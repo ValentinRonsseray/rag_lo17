@@ -1,7 +1,3 @@
-"""
-Core RAG components for the question answering system.
-"""
-
 import os
 import json
 from typing import List, Dict, Any, Optional

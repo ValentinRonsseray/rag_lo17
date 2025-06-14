@@ -25,6 +25,7 @@ def load_pokemon_data() -> List[Dict[str, Any]]:
 # Index par type
 # ---------------------------------------------------------------------------
 
+
 def build_type_index(pokemon_data: List[Dict[str, Any]]) -> Dict[str, List[str]]:
     """construit l'index par type"""
     type_index: Dict[str, List[str]] = defaultdict(list)
@@ -42,13 +43,10 @@ def build_type_index(pokemon_data: List[Dict[str, Any]]) -> Dict[str, List[str]]
 # Index par statut (légendaire, mythique, bébé)
 # ---------------------------------------------------------------------------
 
+
 def build_status_index(pokemon_data: List[Dict[str, Any]]) -> Dict[str, List[str]]:
     """construit l'index par statut"""
-    status_index: Dict[str, List[str]] = {
-        "legendary": [],
-        "mythical": [],
-        "baby": []
-    }
+    status_index: Dict[str, List[str]] = {"legendary": [], "mythical": [], "baby": []}
 
     for pokemon in pokemon_data:
         name = pokemon["name"]
@@ -67,6 +65,7 @@ def build_status_index(pokemon_data: List[Dict[str, Any]]) -> Dict[str, List[str
 # ---------------------------------------------------------------------------
 # Index par habitat
 # ---------------------------------------------------------------------------
+
 
 def build_habitat_index(pokemon_data: List[Dict[str, Any]]) -> Dict[str, List[str]]:
     """construit l'index par habitat"""
@@ -89,6 +88,7 @@ def build_habitat_index(pokemon_data: List[Dict[str, Any]]) -> Dict[str, List[st
 # Index par couleur
 # ---------------------------------------------------------------------------
 
+
 def build_color_index(pokemon_data: List[Dict[str, Any]]) -> Dict[str, List[str]]:
     """construit l'index par couleur"""
     color_index: Dict[str, List[str]] = defaultdict(list)
@@ -110,6 +110,7 @@ def build_color_index(pokemon_data: List[Dict[str, Any]]) -> Dict[str, List[str]
 # Outil de sauvegarde générique
 # ---------------------------------------------------------------------------
 
+
 def save_index(index: Dict[str, Any], filename: str):
     """sauvegarde un index"""
     output_dir = "data/indexes"
@@ -123,6 +124,7 @@ def save_index(index: Dict[str, Any], filename: str):
 # ---------------------------------------------------------------------------
 # Point d'entrée principal
 # ---------------------------------------------------------------------------
+
 
 def main():
     print("chargement des données…")

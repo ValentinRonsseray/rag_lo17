@@ -8,9 +8,9 @@ from .format_pokeapi_data import create_pokemon_documents
 from .pokepedia_data import PokepediaData
 
 __all__ = [
-    'RAGSystem',
-    'HybridIndex',
-    'RAGEvaluator',
-    'create_pokemon_documents',
-    'PokepediaData'
+    "RAGSystem",
+    "HybridIndex",
+    "RAGEvaluator",
+    "create_pokemon_documents",
+    "PokepediaData",
 ]

@@ -65,22 +65,24 @@ TEST_QUESTIONS = [
     },
 ]
 
-async def evaluate_response(evaluator: RAGEvaluator, result: Dict[str, Any], test_case: Dict[str, Any]) -> Dict[str, Any]:
+
+async def evaluate_response(
+    evaluator: RAGEvaluator, result: Dict[str, Any], test_case: Dict[str, Any]
+) -> Dict[str, Any]:
     """évalue une réponse"""
     scores = await evaluator.evaluate_response(
-        result["answer"],
-        test_case["reference"],
-        result["context"]
+        result["answer"], test_case["reference"], result["context"]
     )
-    
+
     return {
         "question": test_case["question"],
         "expected_type": test_case["type"],
         "actual_type": result.get("search_type", "semantic"),
         "prediction": result["answer"],
         "reference": test_case["reference"],
-        **scores
+        **scores,
     }
+
 
 def save_results(results_df: pd.DataFrame, output_dir: Path):
     """sauvegarde les résultats"""
@@ -89,10 +91,10 @@ def save_results(results_df: pd.DataFrame, output_dir: Path):
         # supprime le dossier existant
         if final_dir.exists():
             shutil.rmtree(final_dir, ignore_errors=True)
-        
+
         # crée le dossier
         final_dir.mkdir(exist_ok=True)
-        
+
         # copie les fichiers
         for file in output_dir.glob("*"):
             if file.is_file():
@@ -100,63 +102,68 @@ def save_results(results_df: pd.DataFrame, output_dir: Path):
     except Exception as e:
         print(f"erreur de sauvegarde : {e}")
 
+
 async def run_evaluation():
     """lance l'évaluation"""
     print("initialisation...")
     rag_system = RAGSystem()
     evaluator = RAGEvaluator()
-    
+
     # charge les documents
     print("chargement des documents...")
     documents = create_pokemon_documents()
     rag_system.embed_documents(documents)
-    
+
     # prépare les résultats
     results = []
     output_dir = None
-    
+
     try:
         # crée le dossier temporaire
         output_dir = Path(tempfile.mkdtemp(prefix="eval_results_"))
-        
+
         # évalue chaque question
         print("\ndébut de l'évaluation...")
         for i, test_case in enumerate(TEST_QUESTIONS, 1):
             print(f"\ntest {i}/{len(TEST_QUESTIONS)}: {test_case['question']}")
-            
+
             # obtient la réponse
-            result = rag_system.query(test_case['question'])
-            
+            result = rag_system.query(test_case["question"])
+
             # évalue
             result_data = await evaluate_response(evaluator, result, test_case)
             results.append(result_data)
-            
+
             # affiche les résultats
             print(f"type de recherche: {result.get('search_type', 'semantic')}")
             print(f"correspondance exacte: {result_data['exact_match']:.2f}")
             print(f"score f1: {result_data['f1_score']:.2f}")
             print(f"fidélité: {result_data['faithfulness']:.2f}")
-        
+
         # crée le dataframe
         results_df = pd.DataFrame(results)
-        
+
         # sauvegarde les résultats
         results_df.to_csv(output_dir / "evaluation_results.csv", index=False)
-        
+
         # génère les graphiques
         await evaluator.plot_results(results_df, output_dir)
-        
+
         # sauvegarde dans le dossier final
         save_results(results_df, output_dir)
-        
+
         # analyse des résultats
         print("\nanalyse des résultats:")
         print("\nmoyennes par type:")
-        print(results_df.groupby("actual_type")[["exact_match", "f1_score", "faithfulness"]].mean())
-        
+        print(
+            results_df.groupby("actual_type")[
+                ["exact_match", "f1_score", "faithfulness"]
+            ].mean()
+        )
+
         print("\nmoyennes globales:")
         print(results_df[["exact_match", "f1_score", "faithfulness"]].mean())
-        
+
         # analyse des erreurs
         print("\nanalyse des erreurs:")
         low_faithfulness = results_df[results_df["faithfulness"] < 0.7]
@@ -167,7 +174,7 @@ async def run_evaluation():
                 print(f"prédiction: {row['prediction']}")
                 print(f"référence: {row['reference']}")
                 print(f"score de fidélité: {row['faithfulness']:.2f}")
-    
+
     finally:
         # nettoie le dossier temporaire
         if output_dir and output_dir.exists():
@@ -175,6 +182,7 @@ async def run_evaluation():
                 shutil.rmtree(output_dir, ignore_errors=True)
             except Exception as e:
                 print(f"erreur de nettoyage : {e}")
+
 
 def cleanup():
     """nettoie les ressources"""
@@ -186,9 +194,10 @@ def cleanup():
     except Exception as e:
         print(f"erreur de nettoyage : {e}")
 
+
 if __name__ == "__main__":
     # enregistre la fonction de nettoyage
     atexit.register(cleanup)
-    
+
     # lance l'évaluation
-    asyncio.run(run_evaluation()) 
+    asyncio.run(run_evaluation())

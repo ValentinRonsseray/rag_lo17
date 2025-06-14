@@ -27,11 +27,13 @@ import pandas as pd
 
 BASE_URL = "https://pokeapi.co/api/v2"
 
+
 def fetch(endpoint: str):
     """Effectue une requête GET et retourne le JSON."""
     resp = requests.get(endpoint, timeout=30)
     resp.raise_for_status()
     return resp.json()
+
 
 def get_all_pokemon(rate: float):
     """Récupère la liste complète puis les détails de chaque Pokémon."""
@@ -45,12 +47,15 @@ def get_all_pokemon(rate: float):
         time.sleep(rate)  # rate-limiting
     return all_data
 
+
 def normalize_for_csv(raw):
     """Aplati les champs principaux pour un DataFrame."""
     records = []
     for p in raw:
         stats = {s["stat"]["name"]: s["base_stat"] for s in p["stats"]}
-        types = ",".join(t["type"]["name"] for t in sorted(p["types"], key=lambda t: t["slot"]))
+        types = ",".join(
+            t["type"]["name"] for t in sorted(p["types"], key=lambda t: t["slot"])
+        )
         abilities = ",".join(a["ability"]["name"] for a in p["abilities"])
         records.append(
             {
@@ -65,10 +70,15 @@ def normalize_for_csv(raw):
         )
     return pd.DataFrame.from_records(records)
 
+
 def main():
-    parser = argparse.ArgumentParser(description="Télécharge toutes les données Pokémon depuis PokéAPI.")
+    parser = argparse.ArgumentParser(
+        description="Télécharge toutes les données Pokémon depuis PokéAPI."
+    )
     parser.add_argument("--out", default="./data", help="Dossier de sortie.")
-    parser.add_argument("--rate", type=float, default=0.25, help="Pause (secondes) entre requêtes.")
+    parser.add_argument(
+        "--rate", type=float, default=0.25, help="Pause (secondes) entre requêtes."
+    )
     args = parser.parse_args()
 
     out_dir = Path(args.out)
@@ -87,6 +97,7 @@ def main():
     csv_file = out_dir / "pokemon_basic_stats.csv"
     df.to_csv(csv_file, index=False)
     print(f"CSV sauvegardé dans {csv_file}")
+
 
 if __name__ == "__main__":
     main()

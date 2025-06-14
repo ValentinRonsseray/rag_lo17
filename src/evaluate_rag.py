@@ -21,32 +21,48 @@ from src.evaluation import RAGEvaluator
 from src.format_pokeapi_data import create_pokemon_documents
 
 # Questions de test avec leurs réponses de référence
+# Nouvelles questions de test couvrant différents types de recherche
 TEST_QUESTIONS = [
     {
         "question": "Quels sont les Pokémon de type feu ?",
-        "reference": "Les Pokémon de type feu sont : Charmander, Charmeleon, Charizard, Vulpix, Ninetales, Growlithe, Arcanine, Ponyta, Rapidash, Magmar, Flareon, Moltres, Cyndaquil, Quilava, Typhlosion, Slugma, Magcargo, Houndour, Houndoom, Magby, Entei, Ho-Oh, Torchic, Combusken, Blaziken, Numel, Camerupt, Torkoal, Chimchar, Monferno, Infernape, Magmortar, Heatran, Victini, Tepig, Pignite, Emboar, Pansear, Simisear, Darumaka, Darmanitan, Litwick, Lampent, Chandelure, Larvesta, Volcarona, Fennekin, Braixen, Delphox, Litleo, Pyroar, Heatmor, Fletchinder, Talonflame, Litten, Torracat, Incineroar, Salandit, Salazzle, Turtonator, Togedemaru, Blacephalon, Cinderace, Sizzlipede, Centiskorch, Carkol, Coalossal, Arctovish, Arctozolt, Arctovish, Arctozolt, Arctovish, Arctozolt",
-        "type": "exact"
+        "reference": "Les Pokémon de type feu sont : Charmander, Charmeleon, Charizard, Vulpix, Ninetales, Growlithe et Arcanine",
+        "type": "exact",
     },
     {
         "question": "Décris-moi Arcanin",
-        "reference": "Arcanin est un Pokémon majestueux de type feu. Son port altier et son attitude fière ont depuis longtemps conquis le cœur des hommes. Il possède un pelage principalement orange avec des marques noires et blanches, une crinière imposante et une queue touffue. Arcanin est connu pour sa loyauté et son courage. Il est extrêmement fidèle à son dresseur et protégera son territoire avec ferveur. Malgré son apparence imposante, il est doux avec les personnes qu'il apprécie. On le trouve dans les plaines et les forêts, préférant les endroits ouverts où il peut courir librement. Arcanin est basé sur le chien-lion chinois, une créature mythologique, et est considéré comme un symbole de loyauté et de courage dans la mythologie japonaise.",
-        "type": "semantic"
+        "reference": "Arcanin est un Pokémon majestueux de type feu. Son port altier et son attitude fière ont depuis longtemps conquis le cœur des hommes. Il possède un pelage principalement orange avec des marques noires et blanches, une crinière imposante et une queue touffue. Arcanin est connu pour sa loyauté et son courage. Il est extrêmement fidèle à son dresseur et protégera son territoire avec ferveur. Malgré son apparence imposante, il est doux avec les personnes qu'il apprécie.",
+        "type": "semantic",
     },
     {
         "question": "Liste les Pokémon légendaires",
-        "reference": "Les Pokémon légendaires sont : Articuno, Zapdos, Moltres, Mewtwo, Mew, Raikou, Entei, Suicune, Lugia, Ho-Oh, Celebi, Regirock, Regice, Registeel, Latias, Latios, Kyogre, Groudon, Rayquaza, Jirachi, Deoxys, Uxie, Mesprit, Azelf, Dialga, Palkia, Heatran, Regigigas, Giratina, Cresselia, Phione, Manaphy, Darkrai, Shaymin, Arceus, Victini, Cobalion, Terrakion, Virizion, Tornadus, Thundurus, Reshiram, Zekrom, Landorus, Kyurem, Keldeo, Meloetta, Genesect, Xerneas, Yveltal, Zygarde, Diancie, Hoopa, Volcanion, Type: Null, Silvally, Tapu Koko, Tapu Lele, Tapu Bulu, Tapu Fini, Cosmog, Cosmoem, Solgaleo, Lunala, Nihilego, Buzzwole, Pheromosa, Xurkitree, Celesteela, Kartana, Guzzlord, Necrozma, Magearna, Marshadow, Poipole, Naganadel, Stakataka, Blacephalon, Zeraora, Meltan, Melmetal, Zacian, Zamazenta, Eternatus, Calyrex, Glastrier, Spectrier, Regieleki, Regidrago",
-        "type": "exact"
+        "reference": "Les Pokémon légendaires sont : Articuno, Zapdos, Moltres, Mewtwo et Lugia",
+        "type": "exact",
     },
     {
         "question": "Quelles sont les statistiques de base de Pikachu ?",
-        "reference": "Les statistiques de base de Pikachu sont : PV: 35, Attaque: 55, Défense: 40, Attaque Spéciale: 50, Défense Spéciale: 50, Vitesse: 90",
-        "type": "semantic"
+        "reference": "Les statistiques de base de Pikachu sont : PV 35, Attaque 55, Défense 40, Attaque Spéciale 50, Défense Spéciale 50 et Vitesse 90",
+        "type": "semantic",
     },
     {
         "question": "Quels sont les Pokémon mythiques ?",
-        "reference": "Les Pokémon mythiques sont : Mew, Celebi, Jirachi, Deoxys, Phione, Manaphy, Darkrai, Shaymin, Arceus, Victini, Keldeo, Meloetta, Genesect, Diancie, Hoopa, Volcanion, Magearna, Marshadow, Zeraora, Meltan, Melmetal, Zarude, Calyrex",
-        "type": "exact"
-    }
+        "reference": "Les Pokémon mythiques sont : Mew, Celebi, Jirachi, Deoxys et Darkrai",
+        "type": "exact",
+    },
+    {
+        "question": "Quels Pokémon vivent dans les forêts ?",
+        "reference": "Les Pokémon qui vivent dans les forêts comprennent : Caterpie, Pikachu, Oddish et Paras",
+        "type": "exact",
+    },
+    {
+        "question": "Quels sont les Pokémon de couleur rouge ?",
+        "reference": "Les Pokémon de couleur rouge sont : Charmander, Vulpix, Paras et Magmar",
+        "type": "exact",
+    },
+    {
+        "question": "Quelles sont les évolutions d'Évoli ?",
+        "reference": "Les évolutions d'Évoli sont : Vaporeon, Jolteon, Flareon, Espeon, Umbreon, Leafeon, Glaceon et Sylveon",
+        "type": "semantic",
+    },
 ]
 
 async def evaluate_response(evaluator: RAGEvaluator, result: Dict[str, Any], test_case: Dict[str, Any]) -> Dict[str, Any]:

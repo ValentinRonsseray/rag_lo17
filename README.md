@@ -82,6 +82,9 @@ The system includes several evaluation metrics:
 - Faithfulness Score (LLM-based)
 
 Results are saved in `eval_metrics.csv` and visualized in `evaluation_metrics.png`.
+The `evaluate_rag.py` script includes a small dataset of eight sample
+questions with their expected answers in order to benchmark the system.
+Feel free to adapt these examples to suit your needs.
 
 ## Hallucination Detection
 

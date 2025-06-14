@@ -7,21 +7,54 @@ Quels sont les Pokémon de type feu ?,exact,semantic,"Bien sûr ! Voici quelques
 
 *   **Vulpix :** Ce Pokémon est de type Feu. Il a la capacité Flash Fire, comme Flareon, et une capacité cachée appelée Drought, qui invoque le soleil lorsqu'il entre au combat. Ses statistiques sont plus faibles que celles de Flareon et Charizard, ce qui en fait un Pokémon de base. Il envoie des boules de feu. Avec l’âge, ses six queues en forment de nouvelles.
 
-J'espère que ces informations vous seront utiles !","Les Pokémon de type feu sont : Charmander, Charmeleon, Charizard, Vulpix, Ninetales, Growlithe, Arcanine, Ponyta, Rapidash, Magmar, Flareon, Moltres, Cyndaquil, Quilava, Typhlosion, Slugma, Magcargo, Houndour, Houndoom, Magby, Entei, Ho-Oh, Torchic, Combusken, Blaziken, Numel, Camerupt, Torkoal, Chimchar, Monferno, Infernape, Magmortar, Heatran, Victini, Tepig, Pignite, Emboar, Pansear, Simisear, Darumaka, Darmanitan, Litwick, Lampent, Chandelure, Larvesta, Volcarona, Fennekin, Braixen, Delphox, Litleo, Pyroar, Heatmor, Fletchinder, Talonflame, Litten, Torracat, Incineroar, Salandit, Salazzle, Turtonator, Togedemaru, Blacephalon, Cinderace, Sizzlipede, Centiskorch, Carkol, Coalossal, Arctovish, Arctozolt, Arctovish, Arctozolt, Arctovish, Arctozolt",0.0,0.0967741935483871,0.5405405405405406,0.5405405405405406
+J'espère que ces informations vous seront utiles !","Les Pokémon de type feu sont : Charmander, Charmeleon, Charizard, Vulpix, Ninetales, Growlithe et Arcanine",0.0,0.14400000000000002,0.5405405405405406,0.5405405405405406
 Décris-moi Arcanin,semantic,semantic,"Bien sûr! Voici une description d'Arcanin basée sur les informations que tu m'as fournies :
 
-Arcanin est un Pokémon de type Feu, connu pour son allure majestueuse et sa fierté, ce qui lui a valu l'admiration des humains depuis longtemps. Il possède les talents suivants : Intimidation (Intimidate), Torche (Flash Fire) et Cœur Noble (Justified). Ses statistiques de base sont bien équilibrées, avec une forte Attaque de 110, une Attaque Spéciale de 100, et une Vitesse de 95, ce qui en fait un attaquant rapide et puissant. Ses PV sont de 90, sa Défense de 80 et sa Défense Spéciale de 80.
+Arcanin est un Pokémon de type Feu, connu pour son allure majestueuse et sa fierté, ce qui lui a valu l'admiration des humains depuis longtemps. Il possède les talents suivants : Intimidation (Intimidate), Torche (Flash Fire) et Cœur Noble (Justified). Ses statistiques de base sont bien équilibrées, avec une forte Attaque de 110, une Attaque Spéciale de 100 et une Vitesse de 95, ce qui en fait un attaquant rapide et puissant. Ses PV sont de 90, sa Défense de 80 et sa Défense Spéciale de 80.
 
-Il existe aussi une forme régionale d'Arcanin, appelée Arcanin de Hisui, qui est de type Feu et Roche. Cette forme conserve également l'allure majestueuse et la fierté de la forme originale. Ses talents sont Intimidation (Intimidate), Torche (Flash Fire) et Tête de Roc (Rock Head). Les statistiques de base de l'Arcanin de Hisui sont légèrement différentes : PV 95, Attaque 115, Défense 80, Attaque Spéciale 95, Défense Spéciale 80 et Vitesse 90. On remarque que son Attaque est un peu plus élevée, mais sa Vitesse est un peu plus basse que la forme originale.","Arcanin est un Pokémon majestueux de type feu. Son port altier et son attitude fière ont depuis longtemps conquis le cœur des hommes. Il possède un pelage principalement orange avec des marques noires et blanches, une crinière imposante et une queue touffue. Arcanin est connu pour sa loyauté et son courage. Il est extrêmement fidèle à son dresseur et protégera son territoire avec ferveur. Malgré son apparence imposante, il est doux avec les personnes qu'il apprécie. On le trouve dans les plaines et les forêts, préférant les endroits ouverts où il peut courir librement. Arcanin est basé sur le chien-lion chinois, une créature mythologique, et est considéré comme un symbole de loyauté et de courage dans la mythologie japonaise.",0.0,0.2666666666666666,0.36633663366336633,0.36633663366336633
-Liste les Pokémon légendaires,exact,exact,"Les Pokémon légendaires sont : articuno-galar, articuno, mewtwo-mega-x, mewtwo-mega-y, mewtwo, moltres-galar, moltres, zapdos-galar, zapdos","Les Pokémon légendaires sont : Articuno, Zapdos, Moltres, Mewtwo, Mew, Raikou, Entei, Suicune, Lugia, Ho-Oh, Celebi, Regirock, Regice, Registeel, Latias, Latios, Kyogre, Groudon, Rayquaza, Jirachi, Deoxys, Uxie, Mesprit, Azelf, Dialga, Palkia, Heatran, Regigigas, Giratina, Cresselia, Phione, Manaphy, Darkrai, Shaymin, Arceus, Victini, Cobalion, Terrakion, Virizion, Tornadus, Thundurus, Reshiram, Zekrom, Landorus, Kyurem, Keldeo, Meloetta, Genesect, Xerneas, Yveltal, Zygarde, Diancie, Hoopa, Volcanion, Type: Null, Silvally, Tapu Koko, Tapu Lele, Tapu Bulu, Tapu Fini, Cosmog, Cosmoem, Solgaleo, Lunala, Nihilego, Buzzwole, Pheromosa, Xurkitree, Celesteela, Kartana, Guzzlord, Necrozma, Magearna, Marshadow, Poipole, Naganadel, Stakataka, Blacephalon, Zeraora, Meltan, Melmetal, Zacian, Zamazenta, Eternatus, Calyrex, Glastrier, Spectrier, Regieleki, Regidrago",0.0,0.14814814814814814,0.0,0.0
+Il existe aussi une forme régionale d'Arcanin, appelée Arcanin de Hisui, qui est de type Feu et Roche. Cette forme conserve le talent Intimidation et Torche, mais possède également le talent Tête de Roc (Rock Head). Ses statistiques sont légèrement différentes : PV 95, Attaque 115, Défense 80, Attaque Spéciale 95, Défense Spéciale 80 et Vitesse 90. Comme la forme originale, l'Arcanin de Hisui est décrit comme ayant une allure noble et une attitude fière qui inspirent l'admiration.","Arcanin est un Pokémon majestueux de type feu. Son port altier et son attitude fière ont depuis longtemps conquis le cœur des hommes. Il possède un pelage principalement orange avec des marques noires et blanches, une crinière imposante et une queue touffue. Arcanin est connu pour sa loyauté et son courage. Il est extrêmement fidèle à son dresseur et protégera son territoire avec ferveur. Malgré son apparence imposante, il est doux avec les personnes qu'il apprécie.",0.0,0.3057324840764331,0.39215686274509803,0.39215686274509803
+Liste les Pokémon légendaires,exact,exact,"Les Pokémon légendaires sont : articuno-galar, articuno, mewtwo-mega-x, mewtwo-mega-y, mewtwo, moltres-galar, moltres, zapdos-galar, zapdos","Les Pokémon légendaires sont : Articuno, Zapdos, Moltres, Mewtwo et Lugia",0.0,0.6956521739130435,0.0,0.0
 Quelles sont les statistiques de base de Pikachu ?,semantic,semantic,"Bien sûr ! Voici les statistiques de base de Pikachu, selon les informations que vous avez fournies :
 
 *   **PV** : 35
 *   **Attaque** : 55
 *   **Défense** : 40
-*   **Attaque Spéciale** : 50
-*   **Défense Spéciale** : 50
+*   **Attaque spéciale** : 50
+*   **Défense spéciale** : 50
 *   **Vitesse** : 90
 
-Il est intéressant de noter que Pikachu-Gmax a les mêmes statistiques de base que Pikachu.","Les statistiques de base de Pikachu sont : PV: 35, Attaque: 55, Défense: 40, Attaque Spéciale: 50, Défense Spéciale: 50, Vitesse: 90",0.0,0.6382978723404255,0.5806451612903226,0.5806451612903226
-Quels sont les Pokémon mythiques ?,exact,exact,Les Pokémon mythiques sont : mew,"Les Pokémon mythiques sont : Mew, Celebi, Jirachi, Deoxys, Phione, Manaphy, Darkrai, Shaymin, Arceus, Victini, Keldeo, Meloetta, Genesect, Diancie, Hoopa, Volcanion, Magearna, Marshadow, Zeraora, Meltan, Melmetal, Zarude, Calyrex",0.0,0.3125,0.0,0.0
+Il est intéressant de noter que Pikachu-Gmax a les mêmes statistiques de base que Pikachu.","Les statistiques de base de Pikachu sont : PV 35, Attaque 55, Défense 40, Attaque Spéciale 50, Défense Spéciale 50 et Vitesse 90",0.0,0.625,0.5806451612903226,0.5806451612903226
+Quels sont les Pokémon mythiques ?,exact,exact,Les Pokémon mythiques sont : mew,"Les Pokémon mythiques sont : Mew, Celebi, Jirachi, Deoxys et Darkrai",0.0,0.6666666666666666,0.0,0.0
+Quels Pokémon vivent dans les forêts ?,exact,semantic,"Ah, les forêts, un habitat riche en Pokémon ! D'après les informations que j'ai, Exeggutor, Exeggcute et Tangela sont des exemples de Pokémon que l'on peut trouver dans les forêts.
+
+*   **Exeggutor** : Ce Pokémon de type Plante et Psy est surnommé ""jungle sur pattes"". Imaginez croiser une jungle ambulante ! Il est intéressant de noter que si une de ses têtes devient trop grosse, elle tombe et se transforme en un Exeggcute.
+
+*   **Exeggcute** : Ce groupe de six œufs communique par télépathie et a la capacité de se réunir rapidement s'ils sont séparés. Rencontrer un groupe d'Exeggcute doit être une expérience particulière !
+
+*   **Tangela** : Ce Pokémon de type Plante se cache derrière des lianes bleues recouvertes d'un fin duvet. Il paraît qu'il est très chatouilleux !
+
+Bien sûr, il existe de nombreux autres Pokémon qui vivent dans les forêts, mais ces trois-là sont de bons exemples basés sur les informations que j'ai à disposition.","Les Pokémon qui vivent dans les forêts comprennent : Caterpie, Pikachu, Oddish et Paras",0.0,0.1308411214953271,0.43157894736842106,0.43157894736842106
+Quels sont les Pokémon de couleur rouge ?,exact,semantic,"Bien sûr ! D'après le contexte que tu m'as fourni, Starmie est un Pokémon qui a une partie rouge. Plus précisément, il a un noyau rouge en son centre.
+
+Est-ce qu'il y a autre chose que tu aimerais savoir sur les Pokémon rouges ou sur Starmie ?","Les Pokémon de couleur rouge sont : Charmander, Vulpix, Paras et Magmar",0.0,0.1276595744680851,0.3611111111111111,0.3611111111111111
+Quelles sont les évolutions d'Évoli ?,semantic,semantic,"Ah, Eevee, le Pokémon Evolution ! En raison de sa structure génétique instable, Eevee a la capacité unique de se transformer en de nombreuses formes différentes de Pokémon, ce qui en fait un Pokémon vraiment spécial.
+
+Bien que le contexte ne mentionne pas les évolutions spécifiques d'Eevee, je peux vous en dire plus sur chacune d'elles :
+
+*   **Vaporeon :** Ce Pokémon de type Eau évolue lorsqu'Eevee est exposé à une Pierre Eau. Vaporeon est connu pour sa capacité à se fondre dans l'eau, ce qui en fait un nageur gracieux et insaisissable.
+
+*   **Jolteon :** Ce Pokémon de type Électrique évolue lorsqu'Eevee est exposé à une Pierre Foudre. Jolteon possède une fourrure hérissée qui amplifie son énergie électrique, lui permettant de lancer de puissantes attaques.
+
+*   **Flareon :** Ce Pokémon de type Feu évolue lorsqu'Eevee est exposé à une Pierre Feu. Flareon a une température corporelle élevée et peut libérer des bouffées de flammes.
+
+*   **Espeon :** Ce Pokémon de type Psy évolue lorsqu'Eevee a une amitié élevée avec son Dresseur pendant la journée. Espeon possède de puissantes capacités psychiques et est connu pour sa loyauté envers son Dresseur.
+
+*   **Umbreon :** Ce Pokémon de type Ténèbres évolue lorsqu'Eevee a une amitié élevée avec son Dresseur pendant la nuit. Umbreon émet une lueur mystérieuse de ses anneaux lorsqu'il est exposé à la lumière de la lune.
+
+*   **Leafeon :** Ce Pokémon de type Plante évolue lorsqu'Eevee monte de niveau à proximité d'une Pierre Mousse. Leafeon ressemble à une plante et effectue une photosynthèse.
+
+*   **Glaceon :** Ce Pokémon de type Glace évolue lorsqu'Eevee monte de niveau à proximité d'une Pierre Glacée. Glaceon peut abaisser sa température corporelle pour créer un givre autour de lui.
+
+*   **Sylveon :** Ce Pokémon de type Fée évolue lorsqu'Eevee connaît une attaque de type Fée et a une amitié élevée avec son Dresseur. Sylveon possède des rubans qui émettent une aura apaisante.
+
+Chaque évolution d'Eevee conserve les capacités Run Away, Adaptability et Anticipation.","Les évolutions d'Évoli sont : Vaporeon, Jolteon, Flareon, Espeon, Umbreon, Leafeon, Glaceon et Sylveon",0.0,0.14193548387096774,0.14084507042253522,0.14084507042253522

@@ -11,6 +11,7 @@ from typing import List, Dict, Any
 import sys
 import tempfile
 import shutil
+import atexit
 
 # Ajouter le répertoire racine au PYTHONPATH
 root_dir = Path(__file__).parent.parent
@@ -82,6 +83,24 @@ async def evaluate_response(evaluator: RAGEvaluator, result: Dict[str, Any], tes
         **scores
     }
 
+def save_results(results_df: pd.DataFrame, output_dir: Path):
+    """Sauvegarde les résultats dans le dossier final."""
+    final_dir = Path("evaluation_results")
+    try:
+        # Supprimer le dossier final s'il existe
+        if final_dir.exists():
+            shutil.rmtree(final_dir, ignore_errors=True)
+        
+        # Créer le dossier final
+        final_dir.mkdir(exist_ok=True)
+        
+        # Copier les fichiers un par un
+        for file in output_dir.glob("*"):
+            if file.is_file():
+                shutil.copy2(file, final_dir / file.name)
+    except Exception as e:
+        print(f"Erreur lors de la sauvegarde des résultats : {e}")
+
 async def run_evaluation():
     """Exécute l'évaluation complète du système RAG."""
     print("Initialisation du système RAG...")
@@ -95,10 +114,11 @@ async def run_evaluation():
     
     # Préparation des résultats
     results = []
+    output_dir = None
     
-    # Créer un dossier temporaire pour les résultats
-    with tempfile.TemporaryDirectory(prefix="eval_results_") as output_dir:
-        output_dir = Path(output_dir)
+    try:
+        # Créer un dossier temporaire pour les résultats
+        output_dir = Path(tempfile.mkdtemp(prefix="eval_results_"))
         
         # Évaluation de chaque question
         print("\nDébut de l'évaluation...")
@@ -127,42 +147,49 @@ async def run_evaluation():
         # Génération des graphiques
         await evaluator.plot_results(results_df, output_dir)
         
-        # Copier les résultats dans le dossier final
-        final_dir = Path("evaluation_results")
-        try:
-            # Supprimer le dossier final s'il existe
-            if final_dir.exists():
-                shutil.rmtree(final_dir, ignore_errors=True)
-            
-            # Créer le dossier final
-            final_dir.mkdir(exist_ok=True)
-            
-            # Copier les fichiers un par un
-            for file in output_dir.glob("*"):
-                if file.is_file():
-                    shutil.copy2(file, final_dir / file.name)
-        except Exception as e:
-            print(f"Erreur lors de la copie des résultats : {e}")
-            # En cas d'erreur, on continue avec l'analyse des résultats
+        # Sauvegarde des résultats dans le dossier final
+        save_results(results_df, output_dir)
+        
+        # Analyse des résultats
+        print("\nAnalyse des résultats:")
+        print("\nMoyennes par type de recherche:")
+        print(results_df.groupby("actual_type")[["exact_match", "f1_score", "faithfulness"]].mean())
+        
+        print("\nMoyennes globales:")
+        print(results_df[["exact_match", "f1_score", "faithfulness"]].mean())
+        
+        # Analyse des erreurs
+        print("\nAnalyse des erreurs:")
+        low_faithfulness = results_df[results_df["faithfulness"] < 0.7]
+        if not low_faithfulness.empty:
+            print("\nQuestions avec faible fidélité:")
+            for _, row in low_faithfulness.iterrows():
+                print(f"\nQuestion: {row['question']}")
+                print(f"Prédiction: {row['prediction']}")
+                print(f"Référence: {row['reference']}")
+                print(f"Score de fidélité: {row['faithfulness']:.2f}")
     
-    # Analyse des résultats
-    print("\nAnalyse des résultats:")
-    print("\nMoyennes par type de recherche:")
-    print(results_df.groupby("actual_type")[["exact_match", "f1_score", "faithfulness"]].mean())
-    
-    print("\nMoyennes globales:")
-    print(results_df[["exact_match", "f1_score", "faithfulness"]].mean())
-    
-    # Analyse des erreurs
-    print("\nAnalyse des erreurs:")
-    low_faithfulness = results_df[results_df["faithfulness"] < 0.7]
-    if not low_faithfulness.empty:
-        print("\nQuestions avec faible fidélité:")
-        for _, row in low_faithfulness.iterrows():
-            print(f"\nQuestion: {row['question']}")
-            print(f"Prédiction: {row['prediction']}")
-            print(f"Référence: {row['reference']}")
-            print(f"Score de fidélité: {row['faithfulness']:.2f}")
+    finally:
+        # Nettoyage du dossier temporaire
+        if output_dir and output_dir.exists():
+            try:
+                shutil.rmtree(output_dir, ignore_errors=True)
+            except Exception as e:
+                print(f"Erreur lors du nettoyage : {e}")
+
+def cleanup():
+    """Fonction de nettoyage appelée à la sortie."""
+    try:
+        # Nettoyer le dossier temporaire si nécessaire
+        temp_dir = Path("chroma_db")
+        if temp_dir.exists():
+            shutil.rmtree(temp_dir, ignore_errors=True)
+    except Exception as e:
+        print(f"Erreur lors du nettoyage : {e}")
 
 if __name__ == "__main__":
+    # Enregistrer la fonction de nettoyage
+    atexit.register(cleanup)
+    
+    # Exécuter l'évaluation
     asyncio.run(run_evaluation()) 

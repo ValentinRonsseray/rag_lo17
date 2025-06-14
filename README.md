@@ -43,6 +43,9 @@ export GOOGLE_API_KEY='your-api-key'
 ```bash
 ./run_app.sh
 ```
+The script checks if Pokémon data and indexes are present. If not,
+it automatically downloads the data from PokéAPI and builds the indexes
+before launching the Streamlit interface.
 
 2. Open your browser and navigate to `http://localhost:8501`
 

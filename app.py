@@ -23,21 +23,21 @@ if "evaluator" not in st.session_state:
 
 # chargement des données
 if "data_embedded" not in st.session_state:
-    with st.spinner("chargement des données..."):
+    with st.spinner("Chargement des données..."):
         try:
             # charge les documents
             pokemon_documents = create_pokemon_documents()
 
             # intègre les documents
-            st.info("intégration des documents...")
+            st.info("Intégration des documents...")
             st.session_state.rag_system.embed_documents(pokemon_documents)
             st.session_state.data_embedded = True
             st.session_state.num_pokemon = len(pokemon_documents)
             st.success(
-                f"intégration terminée ! {len(pokemon_documents)} documents chargés."
+                f"Intégration terminée ! {len(pokemon_documents)} documents chargés."
             )
         except Exception as e:
-            st.error(f"erreur de chargement : {e}")
+            st.error(f"Erreur de chargement : {e}")
             st.session_state.data_embedded = False
 
 # titre et description
@@ -63,62 +63,62 @@ Le système utilise un index hybride qui combine :
 
 # barre latérale
 with st.sidebar:
-    st.header("paramètres")
+    st.header("Paramètres")
 
     # paramètres du modèle
-    st.subheader("paramètres du modèle")
-    temperature = st.slider("température", 0.0, 1.0, 0.0, 0.1)
+    st.subheader("Paramètres du modèle")
+    temperature = st.slider("Température", 0.0, 1.0, 0.0, 0.1)
 
     # stats des données
-    st.subheader("stats des données")
+    st.subheader("Statistiques des données")
     if "data_embedded" in st.session_state:
-        st.write(f"nombre de pokémon : {st.session_state.num_pokemon}")
-        st.write("sources : pokeapi")
+        st.write(f"Nombre de Pokémon : {st.session_state.num_pokemon}")
+        st.write("Sources : PokeAPI")
 
     # exemples de questions
-    st.subheader("exemples de questions")
+    st.subheader("Exemples de questions")
     st.markdown(
         """
-    - quels sont les pokémon de type feu ?
-    - liste les pokémon légendaires
-    - quels sont les pokémon mythiques ?
-    - décris-moi pikachu
-    - quelles sont les stats de base de charizard ?
+    - Quels sont les Pokémon de type feu ?
+    - Liste les Pokémon légendaires
+    - Quels sont les Pokémon mythiques ?
+    - Décris-moi Pikachu
+    - Quelles sont les stats de base de Charizard ?
     """
     )
 
 # contenu principal
-st.header("posez votre question")
+st.header("Posez votre question")
 
 # saisie de la question
-question = st.text_input("entrez votre question:")
+question = st.text_input("Entrez votre question:")
 
 if question:
     # obtention de la réponse
-    with st.spinner("génération de la réponse..."):
+    with st.spinner("Génération de la réponse..."):
         try:
             result = st.session_state.rag_system.query(question)
 
             # affichage du type de recherche
             search_type = result.get("search_type", "semantic")
             if search_type == "exact":
-                st.success("recherche exacte (index inverse)")
+                st.success("Recherche exacte (index inverse)")
                 # pas de métriques pour les recherches exactes
-                st.subheader("réponse")
+                st.subheader("Réponse")
                 st.write(result["answer"])
             else:
-                st.info("recherche sémantique (vecteurs)")
+                st.info("Recherche sémantique (vecteurs)")
                 # affichage de la réponse
-                st.subheader("réponse")
+                st.subheader("Réponse")
                 st.write(result["answer"])
 
                 # évaluation de la réponse
-                with st.spinner("évaluation de la réponse..."):
+                with st.spinner("Évaluation de la réponse..."):
                     overlap = context_overlap_score(result["answer"], result["context"])
                     faithfulness = overlap
 
                 # indicateurs de confiance
-                st.subheader("indicateurs de confiance")
+                st.subheader("Indicateurs de confiance")
 
                 # colonnes pour les métriques
                 col1, col2 = st.columns(2)
@@ -127,7 +127,7 @@ if question:
                 hallucination_prob = 1 - faithfulness
                 with col1:
                     st.metric(
-                        "probabilité d'hallucination",
+                        "Probabilité d'hallucination",
                         f"{hallucination_prob:.1%}",
                         delta=None,
                         delta_color="inverse",
@@ -135,21 +135,21 @@ if question:
 
                 # recouvrement du contexte
                 with col2:
-                    st.metric("recouvrement du contexte", f"{overlap:.1%}", delta=None)
+                    st.metric("Recouvrement du contexte", f"{overlap:.1%}", delta=None)
 
                 # barre de confiance
                 confidence_score = faithfulness
-                st.progress(confidence_score, text="confiance globale")
+                st.progress(confidence_score, text="Confiance globale")
 
                 # avertissement si hallucination élevée
                 if hallucination_prob > 0.3:
-                    st.warning("⚠️ attention : réponse potentiellement incorrecte")
+                    st.warning("⚠️ Attention : réponse potentiellement incorrecte")
 
                 # affichage du contexte
                 if result["context"]:
-                    with st.expander("voir le contexte"):
+                    with st.expander("Voir le contexte"):
                         for i, ctx in enumerate(result["context"], 1):
-                            st.markdown(f"**contexte {i}:**")
+                            st.markdown(f"**Contexte {i}:**")
                             st.write(ctx)
                             st.markdown("---")
         except ValueError as e:
@@ -158,17 +158,17 @@ if question:
                 st.session_state.data_embedded = False
                 st.rerun()
         except Exception as e:
-            st.error(f"erreur : {e}")
+            st.error(f"Erreur : {e}")
             st.session_state.data_embedded = False
             st.rerun()
 
 # section d'évaluation
-st.header("évaluation")
-with st.expander("ajouter une référence"):
-    reference = st.text_area("entrez la réponse de référence:")
-    if st.button("sauvegarder la référence"):
+st.header("Évaluation")
+with st.expander("Ajouter une référence"):
+    reference = st.text_area("Entrez la réponse de référence:")
+    if st.button("Sauvegarder la référence"):
         st.session_state.reference_answer = reference
-        st.success("référence sauvegardée!")
+        st.success("Référence sauvegardée!")
 
 # journal des hallucinations
 if "answer" in locals() and "reference_answer" in st.session_state:

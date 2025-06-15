@@ -111,9 +111,6 @@ class RAGSystem:
                 persist_directory=str(self.persist_directory),
             )
             self.retriever = self.vectorstore.as_retriever(search_kwargs={"k": 3})
-
-            # sauvegarde la bdd
-            self.vectorstore.persist()
         except Exception as e:
             print(f"erreur d'intégration : {e}")
             # nettoie en cas d'erreur

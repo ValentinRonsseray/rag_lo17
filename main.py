@@ -11,6 +11,7 @@ import shutil
 import tempfile
 from datetime import datetime
 from dotenv import load_dotenv
+import argparse
 
 
 def run_command(command: str) -> bool:
@@ -89,6 +90,11 @@ def run_application():
 
 def main():
     """Fonction principale."""
+    # Parse les arguments
+    parser = argparse.ArgumentParser(description="Système RAG Pokémon")
+    parser.add_argument("--run", action="store_true", help="Lance directement l'application")
+    args = parser.parse_args()
+
     print("=== Démarrage du système RAG Pokémon ===")
     print(f"Date et heure : {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
@@ -105,12 +111,15 @@ def main():
         print("Échec de la vérification/récupération des données.")
         return
 
-    # Lancement de l'application
-    if not run_application():
-        print("Échec du lancement de l'application.")
-        return
-
-    print("\n=== Application lancée avec succès ===")
+    # Si --run est spécifié, lance l'application
+    if args.run:
+        if not run_application():
+            print("Échec du lancement de l'application.")
+            return
+        print("\n=== Application lancée avec succès ===")
+    else:
+        print("\n=== Configuration terminée avec succès ===")
+        print("Pour lancer l'application, utilisez : python main.py --run")
 
 
 if __name__ == "__main__":

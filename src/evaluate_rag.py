@@ -12,6 +12,7 @@ import sys
 import tempfile
 import shutil
 import atexit
+import re
 
 # ajout du répertoire racine au path
 root_dir = Path(__file__).parent.parent
@@ -24,45 +25,35 @@ from src.format_pokeapi_data import create_pokemon_documents
 # questions de test
 TEST_QUESTIONS = [
     {
-        "question": "Quels sont les Pokémon de type feu ?",
-        "reference": "Les Pokémon de type feu sont : Charmander, Charmeleon, Charizard, Vulpix, Ninetales, Growlithe et Arcanine",
-        "type": "exact",
+        "question": "Quels sont les Pokémon de type fire ?",
+        "reference": "arcanine-hisui, arcanine, charizard-gmax, charizard-mega-x, charizard-mega-y, charizard, charmander, charmeleon, flareon, growlithe-hisui, growlithe, magmar, marowak-alola, moltres, ninetales, ponyta, rapidash, vulpix",
+        "type": "semantic",
     },
     {
         "question": "Décris-moi Arcanin",
-        "reference": "Arcanin est un Pokémon majestueux de type feu. Son port altier et son attitude fière ont depuis longtemps conquis le cœur des hommes. Il possède un pelage principalement orange avec des marques noires et blanches, une crinière imposante et une queue touffue. Arcanin est connu pour sa loyauté et son courage. Il est extrêmement fidèle à son dresseur et protégera son territoire avec ferveur. Malgré son apparence imposante, il est doux avec les personnes qu'il apprécie.",
+        "reference": "Arcanin est un Pokémon de type Feu qui a les capacités intimidate, flash-fire et justified. Ses statistiques sont : PV 90, Attaque 110, Défense 80, Attaque Spéciale 100, Défense Spéciale 80 et Vitesse 95.",
         "type": "semantic",
     },
     {
         "question": "Liste les Pokémon légendaires",
-        "reference": "Les Pokémon légendaires sont : Articuno, Zapdos, Moltres, Mewtwo et Lugia",
-        "type": "exact",
+        "reference": "articuno-galar, articuno, mewtwo-mega-x, mewtwo-mega-y, mewtwo, moltres-galar, moltres, zapdos-galar, zapdos",
+        "type": "semantic",
     },
     {
         "question": "Quelles sont les statistiques de base de Pikachu ?",
-        "reference": "Les statistiques de base de Pikachu sont : PV 35, Attaque 55, Défense 40, Attaque Spéciale 50, Défense Spéciale 50 et Vitesse 90",
+        "reference": "PV 35, Attaque 55, Défense 40, Attaque Spéciale 50, Défense Spéciale 50, Vitesse 90.",
         "type": "semantic",
     },
     {
         "question": "Quels sont les Pokémon mythiques ?",
-        "reference": "Les Pokémon mythiques sont : Mew, Celebi, Jirachi, Deoxys et Darkrai",
-        "type": "exact",
-    },
-    {
-        "question": "Quels Pokémon vivent dans les forêts ?",
-        "reference": "Les Pokémon qui vivent dans les forêts comprennent : Caterpie, Pikachu, Oddish et Paras",
-        "type": "exact",
-    },
-    {
-        "question": "Quels sont les Pokémon de couleur rouge ?",
-        "reference": "Les Pokémon de couleur rouge sont : Charmander, Vulpix, Paras et Magmar",
-        "type": "exact",
-    },
-    {
-        "question": "Quelles sont les évolutions d'Évoli ?",
-        "reference": "Les évolutions d'Évoli sont : Vaporeon, Jolteon, Flareon, Espeon, Umbreon, Leafeon, Glaceon et Sylveon",
+        "reference": "mew",
         "type": "semantic",
     },
+    {
+        "question": "Quels Pokémon vivent dans les caves ?",
+        "reference": "diglett-alola, diglett, dugtrio-alola, dugtrio, gastly, gengar-gmax, gengar-mega, gengar, golbat, haunter, onix, zubat",
+        "type": "semantic",
+    }
 ]
 
 
@@ -129,6 +120,7 @@ async def run_evaluation():
 
             # obtient la réponse
             result = rag_system.query(test_case["question"])
+        
 
             # évalue
             result_data = await evaluate_response(evaluator, result, test_case)

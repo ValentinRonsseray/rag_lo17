@@ -19,10 +19,7 @@ from langchain.schema.runnable import RunnablePassthrough
 from langchain_community.vectorstores import Chroma
 from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
 
-###############################################################################
-# HybridIndex (inchangé)
-###############################################################################
-
+# HybridIndex 
 class HybridIndex:
     def __init__(self, indexes_dir: str = "data/indexes"):
         self.indexes_dir = Path(indexes_dir)
@@ -44,7 +41,7 @@ class HybridIndex:
                 with open(path, "r", encoding="utf-8") as f:
                     self.indexes[index_name] = json.load(f)
 
-    # Méthodes de recherche exactes -------------------------------------------------
+    # Méthodes de recherche exactes 
     def search_by_type(self, type_name: str) -> List[str]:
         return self.indexes.get("type", {}).get(type_name, [])
 
@@ -57,9 +54,7 @@ class HybridIndex:
     def search_by_color(self, color: str) -> List[str]:
         return self.indexes.get("color", {}).get(color, [])
 
-###############################################################################
 # RAGSystem : version "précise & concise"
-###############################################################################
 
 class RAGSystem:
     """Retrieval‑Augmented Generation (Pokémon).
@@ -86,7 +81,7 @@ class RAGSystem:
         # Mode engagé
         self.engaged_mode = engaged_mode
 
-        # Embeddings & LLM --------------------------------------------------------
+        # Embeddings & LLM 
         self.embeddings = GoogleGenerativeAIEmbeddings(model=embedding_model)
         
         # Ajuster les tokens selon le mode
@@ -99,17 +94,15 @@ class RAGSystem:
             max_output_tokens=max_tokens,  # Limite la longueur de sortie
         )
 
-        # Stores / Retriever ------------------------------------------------------
+        # Stores / Retriever 
         self.vectorstore = None
         self.retriever = None
         self.hybrid_index = HybridIndex()
 
-        # Prompt : ton neutre et concis ------------------------------------------
+        # Prompt : ton neutre et concis 
         self._update_prompt_template()
 
-    # ---------------------------------------------------------------------------
     # Ingestion des documents
-    # ---------------------------------------------------------------------------
     def embed_documents(self, documents: List[Document]) -> None:
         """Vectorise et indexe la liste de Documents dans Chroma."""
         from langchain.embeddings.base import Embeddings
@@ -126,9 +119,7 @@ class RAGSystem:
             self.cleanup()
             raise RuntimeError(f"Erreur d'intégration des documents : {exc}") from exc
 
-    # ---------------------------------------------------------------------------
-    # Nettoyage des ressources
-    # ---------------------------------------------------------------------------
+   
     def cleanup(self):
         """Supprime le dossier temporaire Chroma."""
         import shutil
@@ -138,9 +129,7 @@ class RAGSystem:
     def __del__(self):
         self.cleanup()
 
-    # ---------------------------------------------------------------------------
-    # Helpers internes
-    # ---------------------------------------------------------------------------
+    # Helpers 
     def _update_prompt_template(self):
         """Met à jour le prompt template selon le mode engagé."""
         if self.engaged_mode:
@@ -200,9 +189,7 @@ class RAGSystem:
             | StrOutputParser()
         )
 
-    # ---------------------------------------------------------------------------
     # API publique
-    # ---------------------------------------------------------------------------
     def query(self, question: str) -> Dict[str, Any]:
         """Interroge le système ; renvoie answer + context + metadata."""
         if not self.retriever:
@@ -210,10 +197,7 @@ class RAGSystem:
 
         question_lower = question.lower()
 
-        # -----------------------------------
-        # 1. Recherche exacte via HybridIndex
-        # -----------------------------------
-        # (inchangé, mais gardé pour complétude)
+        # Recherche exacte via HybridIndex
         if any(kw in question_lower for kw in ["type", "est de type", "sont de type", "liste", "quels sont"]):
             for type_name in self.hybrid_index.indexes.get("type", {}):
                 if type_name in question_lower:
@@ -246,9 +230,7 @@ class RAGSystem:
                     "search_type": "exact",
                 }
 
-        # -------------------------------------
-        # 2. Recherche sémantique (LLM + RAG)
-        # -------------------------------------
+        # Recherche sémantique (LLM + RAG)
         try:
             docs = self.retriever.invoke(question)
             answer_chain = self._build_chain()

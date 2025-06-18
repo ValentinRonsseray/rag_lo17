@@ -16,8 +16,10 @@ st.set_page_config(
 )
 
 # init de l'état
+if "engaged_mode" not in st.session_state:
+    st.session_state.engaged_mode = False
 if "rag_system" not in st.session_state:
-    st.session_state.rag_system = RAGSystem()
+    st.session_state.rag_system = RAGSystem(engaged_mode=st.session_state.engaged_mode)
 if "evaluator" not in st.session_state:
     st.session_state.evaluator = RAGEvaluator()
 
@@ -68,6 +70,22 @@ with st.sidebar:
     # paramètres du modèle
     st.subheader("Paramètres du modèle")
     temperature = st.slider("Température", 0.0, 1.0, 0.0, 0.1)
+
+    # mode engagé
+    st.subheader("Mode de réponse")
+    engaged_mode = st.toggle("Mode engagé", value=st.session_state.engaged_mode)
+    if engaged_mode != st.session_state.engaged_mode:
+        st.session_state.engaged_mode = engaged_mode
+        # Mettre à jour le mode du système RAG existant sans réinitialiser
+        if hasattr(st.session_state.rag_system, 'engaged_mode'):
+            st.session_state.rag_system.engaged_mode = engaged_mode
+            # Mettre à jour le prompt template
+            st.session_state.rag_system._update_prompt_template()
+    
+    if engaged_mode:
+        st.info("Mode engagé activé - Réponses plus détaillées et structurées")
+    else:
+        st.info("Mode normal - Réponses concises et directes")
 
     # stats des données
     st.subheader("Statistiques des données")

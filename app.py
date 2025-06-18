@@ -79,11 +79,11 @@ with st.sidebar:
     st.subheader("Exemples de questions")
     st.markdown(
         """
-    - Quels sont les Pokémon de type feu ?
     - Liste les Pokémon légendaires
     - Quels sont les Pokémon mythiques ?
     - Décris-moi Pikachu
     - Quelles sont les stats de base de Charizard ?
+    - Qui a le plus de points de vie entre Mew et Machopeur ?
     """
     )
 

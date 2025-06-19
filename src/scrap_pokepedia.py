@@ -10,16 +10,17 @@ API_URL = f"{BASE_URL}/api.php"
 DATA_DIR = "data/pokepedia"
 REQUEST_DELAY = 0.5
 MAX_PAGES = None  # Parcours complet par défaut
+AP_NAMESPACE = "120"  # pages Pokémon uniquement
 
 
 def get_all_page_titles(limit: Optional[int] = MAX_PAGES) -> List[str]:
-    """Récupère la liste de toutes les pages principales."""
+    """Récupère la liste de toutes les pages du namespace Pokémon (120)."""
     params = {
         "action": "query",
         "format": "json",
         "list": "allpages",
         "aplimit": "500",
-        "apnamespace": "0",
+        "apnamespace": AP_NAMESPACE,
     }
     titles: List[str] = []
     token: Optional[str] = None
@@ -82,15 +83,6 @@ def fetch_page(url: str) -> str:
     return extract_paragraphs(resp.text)
 
 
-def is_relevant(title: str, content: str) -> bool:
-    """Détermine si la page concerne l'univers Pokémon."""
-    title_lower = title.lower()
-    if "pokémon" in title_lower or "histoire" in title_lower:
-        return True
-    content_lower = content.lower()
-    return "pokémon" in content_lower
-
-
 def save_content(name: str, url: str, content: str):
     os.makedirs(DATA_DIR, exist_ok=True)
     path = os.path.join(DATA_DIR, f"{name.lower()}.json")
@@ -109,8 +101,7 @@ def scrape_pokepedia(max_pages: int = MAX_PAGES):
             print(f"Erreur lors de la récupération de {url}: {exc}")
             continue
 
-        if is_relevant(title, text):
-            save_content(title, url, text)
+        save_content(title, url, text)
         time.sleep(REQUEST_DELAY)
 
 

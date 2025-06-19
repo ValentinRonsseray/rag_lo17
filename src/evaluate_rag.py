@@ -2,17 +2,16 @@
 script d'évaluation rag pokémon
 """
 
-import json
 import asyncio
-from pathlib import Path
-import pandas as pd
-from datetime import datetime
-from typing import List, Dict, Any
+import atexit
+import shutil
 import sys
 import tempfile
-import shutil
-import atexit
-import re
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List
+
+import pandas as pd
 
 # ajout du répertoire racine au path
 root_dir = Path(__file__).parent.parent
@@ -129,7 +128,10 @@ async def run_evaluation():
             # affiche les résultats
             print(f"type de recherche: {result.get('search_type', 'semantic')}")
             print(f"correspondance exacte: {result_data['exact_match']:.2f}")
-            print(f"score f1: {result_data['f1_score']:.2f}")
+            print(f"f1 réponse: {result_data['answer_f1']:.2f}")
+            print(f"similarité: {result_data['answer_similarity']:.2f}")
+            print(f"precision contexte: {result_data['context_precision']:.2f}")
+            print(f"rappel contexte: {result_data['context_recall']:.2f}")
             print(f"fidélité: {result_data['faithfulness']:.2f}")
 
         # crée le dataframe
@@ -149,12 +151,30 @@ async def run_evaluation():
         print("\nmoyennes par type:")
         print(
             results_df.groupby("actual_type")[
-                ["exact_match", "f1_score", "faithfulness"]
+                [
+                    "exact_match",
+                    "answer_f1",
+                    "answer_similarity",
+                    "context_precision",
+                    "context_recall",
+                    "faithfulness",
+                ]
             ].mean()
         )
 
         print("\nmoyennes globales:")
-        print(results_df[["exact_match", "f1_score", "faithfulness"]].mean())
+        print(
+            results_df[
+                [
+                    "exact_match",
+                    "answer_f1",
+                    "answer_similarity",
+                    "context_precision",
+                    "context_recall",
+                    "faithfulness",
+                ]
+            ].mean()
+        )
 
         # analyse des erreurs
         print("\nanalyse des erreurs:")

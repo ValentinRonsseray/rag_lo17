@@ -5,7 +5,7 @@ from datetime import datetime
 import pandas as pd
 from src.evaluation import RAGEvaluator, context_overlap_score
 
-from src.rag_core import RAGSystem
+from src.rag_core import RAGSystem, load_pokepedia_documents
 from src.format_pokeapi_data import create_pokemon_documents
 
 # config de la page
@@ -17,26 +17,38 @@ st.set_page_config(
 
 # init de l'état
 if "engaged_mode" not in st.session_state:
-    st.session_state.engaged_mode = False
+    st.session_state.engaged_mode = True  # Mode engagé activé par défaut
 if "rag_system" not in st.session_state:
     st.session_state.rag_system = RAGSystem(engaged_mode=st.session_state.engaged_mode)
 if "evaluator" not in st.session_state:
     st.session_state.evaluator = RAGEvaluator()
+if "num_pokemon" not in st.session_state:
+    st.session_state.num_pokemon = 0
+if "num_pokepedia" not in st.session_state:
+    st.session_state.num_pokepedia = 0
 
 # chargement des données
 if "data_embedded" not in st.session_state:
     with st.spinner("Chargement des données..."):
         try:
-            # charge les documents
+            # charge les documents PokeAPI
             pokemon_documents = create_pokemon_documents()
+            
+            # charge les documents Poképédia séparément pour le comptage
+            pokepedia_documents = load_pokepedia_documents()
+            
+            # compte les documents
+            pokeapi_count = len(pokemon_documents)
+            pokepedia_count = len(pokepedia_documents)
 
             # intègre les documents
             st.info("Intégration des documents...")
-            st.session_state.rag_system.embed_documents(pokemon_documents)
+            st.session_state.rag_system.embed_documents(pokemon_documents, pokepedia_documents)
             st.session_state.data_embedded = True
-            st.session_state.num_pokemon = len(pokemon_documents)
+            st.session_state.num_pokemon = pokeapi_count
+            st.session_state.num_pokepedia = pokepedia_count
             st.success(
-                f"Intégration terminée ! {len(pokemon_documents)} documents chargés."
+                f"Intégration terminée ! {pokeapi_count} documents PokeAPI + {pokepedia_count} documents Poképédia chargés."
             )
         except Exception as e:
             st.error(f"Erreur de chargement : {e}")
@@ -50,16 +62,14 @@ Cette application utilise un système RAG (Retrieval-Augmented Generation) pour 
 sur les Pokémon. Le système utilise le modèle Gemini de Google pour la génération
 et ChromaDB pour le stockage et la récupération des informations.
 
-Les données proviennent directement de l'API Pokémon officielle (PokeAPI) et incluent :
-- Informations détaillées sur chaque Pokémon
-- Statistiques de base
-- Types et capacités
-- Descriptions en français
-- Formes alternatives (Méga-évolutions, formes régionales, etc.)
+Les données proviennent de deux sources principales :
+- **PokeAPI** : Informations détaillées sur chaque Pokémon (statistiques, types, capacités, descriptions officielles)
+- **Poképédia** : Contenu enrichi en français avec descriptions détaillées, biologie, comportement, habitat, mythologie et faits divers
 
-Le système utilise un index hybride qui combine :
-- Recherche vectorielle pour les questions complexes
-- Index inverses pour les recherches exactes (types, statuts, etc.)
+Le système utilise une recherche vectorielle avancée avec :
+- Métadonnées enrichies incluant les informations d'index (types, statuts, habitats, couleurs)
+- Intégration automatique des données Poképédia pour des réponses plus riches et détaillées
+- Recherche sémantique pour comprendre le contexte et l'intention des questions
 """
 )
 
@@ -79,7 +89,7 @@ with st.sidebar:
 
     # mode engagé
     st.subheader("Mode de réponse")
-    engaged_mode = st.toggle("Mode engagé", value=st.session_state.engaged_mode)
+    engaged_mode = st.toggle("Activer le mode engagé", value=st.session_state.engaged_mode)
     if engaged_mode != st.session_state.engaged_mode:
         st.session_state.engaged_mode = engaged_mode
         # Mettre à jour le mode du système RAG existant sans réinitialiser
@@ -89,15 +99,18 @@ with st.sidebar:
             st.session_state.rag_system._update_prompt_template()
     
     if engaged_mode:
-        st.info("Mode engagé activé - Réponses plus détaillées et structurées")
+        st.success("✅ Mode engagé activé - Réponses détaillées et structurées")
     else:
-        st.info("Mode normal - Réponses concises et directes")
+        st.info("ℹ️ Mode normal - Réponses concises et directes")
 
     # stats des données
     st.subheader("Statistiques des données")
-    if "data_embedded" in st.session_state:
+    if "data_embedded" in st.session_state and st.session_state.data_embedded:
         st.write(f"Nombre de Pokémon : {st.session_state.num_pokemon}")
-        st.write("Sources : PokeAPI")
+        st.write(f"Documents Poképédia : {st.session_state.num_pokepedia}")
+        st.write("Sources : PokeAPI + Poképédia")
+    else:
+        st.write("Données non chargées")
 
     # exemples de questions
     st.subheader("Exemples de questions")
@@ -107,7 +120,10 @@ with st.sidebar:
     - Quels sont les Pokémon mythiques ?
     - Décris-moi Pikachu
     - Quelles sont les stats de base de Charizard ?
-    - Qui a le plus de points de vie entre Mew et Machopeur ?
+    - Qui a le plus d'attaque entre Lapras et Rattata ?
+    - Raconte-moi l'histoire et la mythologie de Mewtwo
+    - Décris le comportement et l'habitat de Bulbizarre
+    - Quels sont les faits intéressants sur Arcanin ?
     """
     )
 
@@ -123,59 +139,53 @@ if question:
         try:
             result = st.session_state.rag_system.query(question)
 
-            # affichage du type de recherche
-            search_type = result.get("search_type", "semantic")
-            if search_type == "exact":
-                st.success("Recherche exacte (index inverse)")
-                # pas de métriques pour les recherches exactes
-                st.subheader("Réponse")
-                st.write(result["answer"])
-            else:
-                st.info("Recherche sémantique (vecteurs)")
-                # affichage de la réponse
-                st.subheader("Réponse")
-                st.write(result["answer"])
+            # affichage de la réponse
+            st.info("Recherche sémantique (vecteurs)")
+            st.subheader("Réponse")
+            st.write(result["answer"])
 
-                # évaluation de la réponse
-                with st.spinner("Évaluation de la réponse..."):
-                    overlap = context_overlap_score(result["answer"], result["context"])
-                    faithfulness = overlap
+            # évaluation de la réponse
+            with st.spinner("Évaluation de la réponse..."):
+                overlap = context_overlap_score(result["answer"], result["context"])
+                faithfulness = overlap
 
-                # indicateurs de confiance
-                st.subheader("Indicateurs de confiance")
+            # indicateurs de confiance
+            st.subheader("Indicateurs de confiance")
 
-                # colonnes pour les métriques
-                col1, col2 = st.columns(2)
+            # colonnes pour les métriques
+            col1, col2 = st.columns(2)
 
-                # fidélité
-                hallucination_prob = 1 - faithfulness
-                with col1:
-                    st.metric(
-                        "Probabilité d'hallucination",
-                        f"{hallucination_prob:.1%}",
-                        delta=None,
-                        delta_color="inverse",
-                    )
+            # fidélité
+            hallucination_prob = 1 - faithfulness
+            with col1:
+                st.metric(
+                    "Probabilité d'hallucination",
+                    f"{hallucination_prob:.1%}",
+                    delta=None,
+                    delta_color="inverse",
+                )
 
-                # recouvrement du contexte
-                with col2:
-                    st.metric("Recouvrement du contexte", f"{overlap:.1%}", delta=None)
+            # recouvrement du contexte
+            with col2:
+                st.metric("Recouvrement du contexte", f"{overlap:.1%}", delta=None)
 
-                # barre de confiance
-                confidence_score = faithfulness
-                st.progress(confidence_score, text="Confiance globale")
+            # barre de confiance
+            confidence_score = faithfulness
+            st.progress(confidence_score, text="Confiance globale")
 
-                # avertissement si hallucination élevée
-                if hallucination_prob > 0.3:
-                    st.warning("⚠️ Attention : réponse potentiellement incorrecte")
+            # avertissement si hallucination élevée
+            if hallucination_prob > 0.3:
+                st.warning("⚠️ Attention : réponse potentiellement incorrecte")
 
-                # affichage du contexte
-                if result["context"]:
-                    with st.expander("Voir le contexte"):
-                        for i, ctx in enumerate(result["context"], 1):
-                            st.markdown(f"**Contexte {i}:**")
-                            st.write(ctx)
-                            st.markdown("---")
+            # affichage du contexte
+            if result["context"]:
+                with st.expander("Voir le contexte"):
+                    for i, (ctx, metadata) in enumerate(zip(result["context"], result["metadata"]), 1):
+                        source = metadata.get("source", "unknown")
+                        source_icon = "📊" if source == "pokeapi" else "📚" if source == "pokepedia" else "❓"
+                        st.markdown(f"**Contexte {i}** {source_icon} ({source}):")
+                        st.write(ctx)
+                        st.markdown("---")
         except ValueError as e:
             st.error(str(e))
             if "réinitialiser l'application" in str(e).lower():
@@ -206,7 +216,7 @@ if "answer" in locals() and "reference_answer" in st.session_state:
                     "prediction": result["answer"],
                     "reference": st.session_state.reference_answer,
                     "faithfulness_score": faithfulness,
-                    "search_type": search_type,
+                    "search_type": "semantic",
                 }
             ]
         )

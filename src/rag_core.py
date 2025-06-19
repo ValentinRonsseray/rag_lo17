@@ -19,50 +19,81 @@ from langchain.schema.runnable import RunnablePassthrough
 from langchain_community.vectorstores import Chroma
 from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
 
-# HybridIndex 
-class HybridIndex:
-    def __init__(self, indexes_dir: str = "data/indexes"):
-        self.indexes_dir = Path(indexes_dir)
-        self.indexes: Dict[str, Dict[str, List[str]]] = {}
-        self._load_indexes()
+def load_pokepedia_documents() -> List[Document]:
+    """Charge et formate les documents Poképédia."""
+    pokepedia_dir = Path("data/pokepedia")
+    documents = []
+    
+    if not pokepedia_dir.exists():
+        print("Dossier Poképédia non trouvé, création d'un exemple...")
+        return documents
+    
+    for json_file in pokepedia_dir.glob("*.json"):
+        try:
+            with open(json_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            
+            # Extraire le nom du Pokémon depuis le nom du fichier
+            pokemon_name = json_file.stem
+            
+            # Formater le contenu
+            content = data.get("content", "")
+            if content:
+                # Créer un document avec métadonnées
+                doc = Document(
+                    page_content=f"Informations Poképédia sur {pokemon_name}:\n\n{content}",
+                    metadata={
+                        "source": "pokepedia",
+                        "pokemon_name": pokemon_name,
+                        "url": data.get("url", ""),
+                        "timestamp": data.get("timestamp", ""),
+                        "content_type": "pokepedia_description"
+                    }
+                )
+                documents.append(doc)
+                print(f"Document Poképédia chargé: {pokemon_name}")
+                
+        except Exception as e:
+            print(f"Erreur lors du chargement de {json_file}: {e}")
+    
+    print(f"Total documents Poképédia chargés: {len(documents)}")
+    return documents
 
-    def _load_indexes(self):
-        """Charge les index de type / statut / habitat / couleur."""
-        index_files = {
-            "type": "type_index.json",
-            "status": "status_index.json",
-            "evolution": "evolution_index.json",
-            "habitat": "habitat_index.json",
-            "color": "color_index.json",
-        }
-        for index_name, filename in index_files.items():
-            path = self.indexes_dir / filename
-            if path.exists():
+def load_index_data() -> Dict[str, Dict[str, List[str]]]:
+    """Charge les données d'index depuis les fichiers JSON."""
+    indexes_dir = Path("data/indexes")
+    indexes = {}
+    
+    if not indexes_dir.exists():
+        print("Dossier indexes non trouvé")
+        return indexes
+    
+    index_files = {
+        "type": "type_index.json",
+        "status": "status_index.json",
+        "habitat": "habitat_index.json",
+        "color": "color_index.json",
+    }
+    
+    for index_name, filename in index_files.items():
+        path = indexes_dir / filename
+        if path.exists():
+            try:
                 with open(path, "r", encoding="utf-8") as f:
-                    self.indexes[index_name] = json.load(f)
+                    indexes[index_name] = json.load(f)
+                print(f"Index {index_name} chargé: {len(indexes[index_name])} catégories")
+            except Exception as e:
+                print(f"Erreur lors du chargement de l'index {index_name}: {e}")
+    
+    return indexes
 
-    # Méthodes de recherche exactes 
-    def search_by_type(self, type_name: str) -> List[str]:
-        return self.indexes.get("type", {}).get(type_name, [])
-
-    def search_by_status(self, status: str) -> List[str]:
-        return self.indexes.get("status", {}).get(status, [])
-
-    def search_by_habitat(self, habitat: str) -> List[str]:
-        return self.indexes.get("habitat", {}).get(habitat, [])
-
-    def search_by_color(self, color: str) -> List[str]:
-        return self.indexes.get("color", {}).get(color, [])
-
-# RAGSystem : version "précise & concise"
+# RAGSystem : version simplifiée sans recherche hybride
 
 class RAGSystem:
-    """Retrieval‑Augmented Generation (Pokémon).
+    """Retrieval‑Augmented Generation (Pokémon).
 
-    Cette version est optimisée pour fournir des réponses concises : le prompt
-    impose une limite de longueur et la configuration LLM bride le nombre de
-    tokens générés. Par défaut, on cherche 2 documents (k=2) pour réduire la
-    surcharge contextuelle.
+    Cette version utilise uniquement la recherche vectorielle avec des métadonnées enrichies
+    incluant les informations d'index pour une recherche plus précise.
     """
 
     def __init__(
@@ -97,18 +128,34 @@ class RAGSystem:
         # Stores / Retriever 
         self.vectorstore = None
         self.retriever = None
-        self.hybrid_index = HybridIndex()
 
         # Prompt : ton neutre et concis 
         self._update_prompt_template()
 
     # Ingestion des documents
-    def embed_documents(self, documents: List[Document]) -> None:
+    def embed_documents(self, documents: List[Document], pokepedia_documents: List[Document] = None) -> None:
         """Vectorise et indexe la liste de Documents dans Chroma."""
         from langchain.embeddings.base import Embeddings
+        
+        # Charger les documents Poképédia si pas fournis
+        if pokepedia_documents is None:
+            pokepedia_documents = load_pokepedia_documents()
+        
+        # Charger les données d'index
+        indexes = load_index_data()
+        
+        # Enrichir les métadonnées des documents avec les informations d'index
+        enriched_documents = self._enrich_documents_with_indexes(documents, indexes)
+        enriched_pokepedia = self._enrich_documents_with_indexes(pokepedia_documents, indexes)
+        
+        # Combiner tous les documents
+        all_documents = enriched_documents + enriched_pokepedia
+        
+        print(f"Intégration de {len(documents)} documents PokeAPI + {len(pokepedia_documents)} documents Poképédia")
+        
         try:
             self.vectorstore = Chroma.from_documents(
-                documents=documents,
+                documents=all_documents,
                 embedding=self.embeddings,
                 persist_directory=str(self.persist_directory),
             )
@@ -117,7 +164,73 @@ class RAGSystem:
             self.retriever = self.vectorstore.as_retriever(search_kwargs={"k": k_value})
         except Exception as exc:
             self.cleanup()
-            raise RuntimeError(f"Erreur d'intégration des documents : {exc}") from exc
+            raise RuntimeError(f"Erreur d'intégration des documents : {exc}") from exc
+
+    def _enrich_documents_with_indexes(self, documents: List[Document], indexes: Dict[str, Dict[str, List[str]]]) -> List[Document]:
+        """Enrichit les documents avec les informations d'index."""
+        enriched_docs = []
+        
+        for doc in documents:
+            pokemon_name = doc.metadata.get("name", "").lower()
+            if not pokemon_name:
+                # Essayer de récupérer le nom depuis le contenu pour les documents Poképédia
+                if doc.metadata.get("source") == "pokepedia":
+                    pokemon_name = doc.metadata.get("pokemon_name", "").lower()
+            
+            if pokemon_name:
+                # Ajouter les informations d'index aux métadonnées
+                enriched_metadata = doc.metadata.copy()
+                
+                # Types - convertir en chaîne
+                pokemon_types = []
+                for type_name, pokemon_list in indexes.get("type", {}).items():
+                    if pokemon_name in pokemon_list:
+                        pokemon_types.append(type_name)
+                if pokemon_types:
+                    enriched_metadata["pokemon_types"] = ", ".join(pokemon_types)
+                
+                # Statut (légendaire, mythique, bébé)
+                for status, pokemon_list in indexes.get("status", {}).items():
+                    if pokemon_name in pokemon_list:
+                        enriched_metadata[f"is_{status}"] = True
+                
+                # Habitat
+                for habitat_name, pokemon_list in indexes.get("habitat", {}).items():
+                    if pokemon_name in pokemon_list:
+                        enriched_metadata["habitat"] = habitat_name
+                
+                # Couleur
+                for color_name, pokemon_list in indexes.get("color", {}).items():
+                    if pokemon_name in pokemon_list:
+                        enriched_metadata["color"] = color_name
+                
+                # Filtrer manuellement les métadonnées complexes
+                filtered_metadata = {}
+                for key, value in enriched_metadata.items():
+                    if isinstance(value, (str, int, float, bool, type(None))):
+                        filtered_metadata[key] = value
+                    elif isinstance(value, list):
+                        # Convertir les listes en chaînes
+                        filtered_metadata[key] = ", ".join(str(item) for item in value)
+                    elif isinstance(value, dict):
+                        # Convertir les dictionnaires en chaînes JSON
+                        import json
+                        filtered_metadata[key] = json.dumps(value, ensure_ascii=False)
+                    else:
+                        # Convertir les autres types en chaînes
+                        filtered_metadata[key] = str(value)
+                
+                # Créer un nouveau document avec les métadonnées enrichies
+                enriched_doc = Document(
+                    page_content=doc.page_content,
+                    metadata=filtered_metadata
+                )
+                enriched_docs.append(enriched_doc)
+            else:
+                # Garder le document original si pas de nom trouvé
+                enriched_docs.append(doc)
+        
+        return enriched_docs
 
    
     def cleanup(self):
@@ -134,35 +247,66 @@ class RAGSystem:
         """Met à jour le prompt template selon le mode engagé."""
         if self.engaged_mode:
             self.prompt_template = PromptTemplate.from_template(
-                """You are a Pokémon encyclopedia assistant. Provide accurate, concise, and well-structured information about Pokémon.
+                """You are a Pokémon encyclopedia assistant. Provide accurate, comprehensive, and well-structured information about Pokémon.
                 Rely only on the context below to answer the question. If the answer is not in the context, respond with "I don't know".
 
+                Data source guidelines:
+                - Use PokeAPI data (source: "pokeapi") for: statistics, types, abilities, base stats, technical specifications, evolution chains, capture rates, etc.
+                - Use Poképédia data (source: "pokepedia") for: descriptions, biology, behavior, habitat, mythology, lore, cultural aspects, interesting facts, etc.
+                - When both sources are available, combine them appropriately.
+
+                Index usage guidelines:
+                - Use metadata indexes when relevant: pokemon_types, is_legendary, is_mythical, is_baby, habitat, color
+                - For questions about Pokémon by type, check pokemon_types metadata
+                - For questions about legendary/mythical/baby Pokémon, check is_legendary, is_mythical, is_baby metadata
+                - For questions about habitats, check habitat metadata
+                - For questions about colors, check color metadata
+                - Combine index information with detailed content for comprehensive answers
+
                 Response guidelines:
-                1. Be concise and strictly informative.
-                2. Prioritize accuracy; avoid unnecessary anecdotes or trivia.
+                1. Be informative and well-structured.
+                2. Prioritize accuracy; use the most appropriate data source for the question type.
                 3. Structure the answer in clear, logical paragraphs.
                 4. Use a neutral, professional tone.
-                5. If the context contains Poképédia content, incorporate it explicitly.
-                6. For broad questions, give a concise, ordered overview.
-                7. For specific questions, address only the relevant details.
+                5. For statistical questions (stats, types, abilities), rely primarily on PokeAPI data.
+                6. For descriptive questions (appearance, behavior, lore), rely primarily on Poképédia data.
+                7. For comprehensive questions, combine both sources logically.
+                8. Always mention the source when using Poképédia content.
+                9. Use index metadata to provide accurate categorization and filtering information.
 
                 Question: {question}
                 Context: {context}
                 Answer:"""
-                        )
+            )
         else:
             self.prompt_template = PromptTemplate.from_template(
                 """You are a Pokémon encyclopedia assistant. 
                 Provide accurate and concise answers strictly relevant to the question. 
                 Use only the context below. 
                 If the answer is not in the context, reply with \"I don't know\".
+                
+                Data source guidelines:
+                - Use PokeAPI data (source: "pokeapi") for: statistics, types, abilities, base stats, technical specifications, evolution chains, capture rates, etc.
+                - Use Poképédia data (source: "pokepedia") for: descriptions, biology, behavior, habitat, mythology, lore, cultural aspects, interesting facts, etc.
+                - When both sources are available, combine them appropriately.
+
+                Index usage guidelines:
+                - Use metadata indexes when relevant: pokemon_types, is_legendary, is_mythical, is_baby, habitat, color
+                - For questions about Pokémon by type, check pokemon_types metadata
+                - For questions about legendary/mythical/baby Pokémon, check is_legendary, is_mythical, is_baby metadata
+                - For questions about habitats, check habitat metadata
+                - For questions about colors, check color metadata
+                - Combine index information with detailed content for comprehensive answers
+
                 Response guidelines:
-                1. Keep answers short – ideally 2‑4 sentences (≈120 words max).
-                2. State only essential facts; omit tangential trivia.
+                1. Keep answers concise but informative – ideally 3-5 sentences.
+                2. Use the most appropriate data source for the question type.
                 3. Use a neutral, professional tone.
-                4. Integrate Poképédia content when present.
-                5. For broad questions, give a bullet‑style overview.
-                6. For specific questions, answer directly without additional commentary.
+                4. For statistical questions (stats, types, abilities), rely primarily on PokeAPI data.
+                5. For descriptive questions (appearance, behavior, lore), rely primarily on Poképédia data.
+                6. Always mention when using Poképédia content as a source.
+                7. Distinguish clearly between technical data (PokeAPI) and descriptive content (Poképédia).
+                8. Use index metadata to provide accurate categorization and filtering information.
                 Question: {question}
                 Context: {context}
                 Answer:"""
@@ -211,89 +355,6 @@ class RAGSystem:
         print(f"Mode engagé: {self.engaged_mode}")
         print(f"K documents: {self.retriever.search_kwargs.get('k', 'N/A')}")
         print("-" * 60)
-
-        question_lower = question.lower()
-        # Recherche exacte via HybridIndex
-        # Mapping des noms de types en français vers l'anglais
-        type_fr_to_en = {
-            "feu": "fire", "eau": "water", "plante": "grass", "électrik": "electric",
-            "glace": "ice", "combat": "fighting", "poison": "poison", "sol": "ground",
-            "vol": "flying", "psy": "psychic", "insecte": "bug", "roche": "rock",
-            "spectre": "ghost", "dragon": "dragon", "ténèbres": "dark", "acier": "steel",
-            "fée": "fairy", "normal": "normal"
-        }
-        
-        # Mapping des noms d'habitats en français vers l'anglais
-        habitat_fr_to_en = {
-            "urbain": "urban", "ville": "urban", "cité": "urban", "montagne": "mountain", 
-            "montagnes": "mountain", "prairie": "grassland", "plaine": "grassland", 
-            "herbe": "grassland", "rare": "rare", "forêt": "forest", "bois": "forest",
-            "bord de l'eau": "waters-edge", "rivière": "waters-edge", "lac": "waters-edge",
-            "mer": "sea", "océan": "sea", "grotte": "cave", "caverne": "cave",
-            "terrain accidenté": "rough-terrain", "terrain difficile": "rough-terrain"
-        }
-
-        if any(kw in question_lower for kw in ["type", "est de type", "sont de type", "liste", "quels sont"]):
-            for type_name in self.hybrid_index.indexes.get("type", {}):
-                # Vérifie le nom du type en anglais et en français
-                if type_name in question_lower or any(fr_type for fr_type, en_type in type_fr_to_en.items() 
-                                                    if fr_type in question_lower and en_type == type_name):
-                    pk_names = self.hybrid_index.search_by_type(type_name)
-                    if pk_names:
-                        print("Recherche exacte par type détectée")
-                        print(f"Résultat: {len(pk_names)} Pokémon trouvés")
-                        print("=" * 60)
-                        return {
-                            "answer": f"Les Pokémon de type {type_name} : {', '.join(pk_names)}",
-                            "context": [],
-                            "metadata": [],
-                            "search_type": "exact",
-                        }
-
-        # Recherche par habitat
-        if any(kw in question_lower for kw in ["habitat", "habite", "vit dans", "trouve dans", "habitat de", "habitats"]):
-            for habitat_name in self.hybrid_index.indexes.get("habitat", {}):
-                # Vérifie le nom de l'habitat en anglais et en français
-                if habitat_name in question_lower or any(fr_habitat for fr_habitat, en_habitat in habitat_fr_to_en.items() 
-                                                        if fr_habitat in question_lower and en_habitat == habitat_name):
-                    pk_names = self.hybrid_index.search_by_habitat(habitat_name)
-                    if pk_names:
-                        # Traduire le nom de l'habitat pour l'affichage
-                        habitat_display = next((fr for fr, en in habitat_fr_to_en.items() if en == habitat_name), habitat_name)
-                        print("Recherche exacte par habitat détectée")
-                        print(f"Résultat: {len(pk_names)} Pokémon trouvés")
-                        print("=" * 60)
-                        return {
-                            "answer": f"Les Pokémon de l'habitat {habitat_display} : {', '.join(pk_names)}",
-                            "context": [],
-                            "metadata": [],
-                            "search_type": "exact",
-                        }
-
-        if any(kw in question_lower for kw in ["légendaire", "legendary", "légendaires", "legendaries"]):
-            pk_names = self.hybrid_index.search_by_status("legendary")
-            if pk_names:
-                print("Recherche exacte par statut (légendaire) détectée")
-                print(f"Résultat: {len(pk_names)} Pokémon trouvés")
-                print("=" * 60)
-                return {
-                    "answer": f"Les Pokémon légendaires : {', '.join(pk_names)}",
-                    "context": [],
-                    "metadata": [],
-                    "search_type": "exact",
-                }
-
-        if any(kw in question_lower for kw in ["mythique", "mythical", "mythiques", "mythicals"]):
-            pk_names = self.hybrid_index.search_by_status("mythical")
-            if pk_names:
-                print("Recherche exacte par statut (mythique) détectée")
-                print(f"Résultat: {len(pk_names)} Pokémon trouvés")
-                print("=" * 60)
-                return {
-                    "answer": f"Les Pokémon mythiques : {', '.join(pk_names)}",
-                    "metadata": [],
-                    "search_type": "exact",
-                }
 
         # Recherche sémantique (LLM + RAG)
         print("Recherche sémantique (RAG) en cours...")

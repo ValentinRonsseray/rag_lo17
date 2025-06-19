@@ -1,13 +1,32 @@
+# Core RAG dependencies
 langchain-core>=0.1.23
 langchain>=0.1.1
 langchain-google-genai>=0.0.6
 langchain-community>=0.0.20
 chromadb>=0.4.22
+
+# Web interface
 streamlit>=1.32.0
+
+# Data processing
 pandas>=2.2.0
 numpy>=1.26.0
+
+# Visualization
 matplotlib>=3.8.0
+
+# Machine learning and evaluation
 scikit-learn>=1.4.0
+rapidfuzz>=3.0.0
+
+# Environment and utilities
 python-dotenv>=1.0.0
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+setuptools>=68.0.0
+
+# Testing
 pytest>=8.0.0
-rapidfuzz>=3.0.0 
+
+# Fix for protobuf compatibility
+protobuf>=3.20.0,<4.0.0 

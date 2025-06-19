@@ -4,6 +4,15 @@ from typing import List, Dict, Any
 from pathlib import Path
 from dotenv import load_dotenv
 
+# Fix pour le problème de protobuf
+os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
+
+# Fix pour le problème de distutils en Python 3.12+
+try:
+    import distutils
+except ImportError:
+    import setuptools._distutils as distutils
+
 # Charge les variables d'environnement
 load_dotenv()
 

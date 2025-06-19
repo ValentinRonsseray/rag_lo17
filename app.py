@@ -3,6 +3,16 @@ import streamlit as st
 from pathlib import Path
 from datetime import datetime
 import pandas as pd
+
+# Fix pour le problème de protobuf
+os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
+
+# Fix pour le problème de distutils en Python 3.12+
+try:
+    import distutils
+except ImportError:
+    import setuptools._distutils as distutils
+
 from src.evaluation import RAGEvaluator, faithfulness
 
 from src.rag_core import RAGSystem, load_pokepedia_documents

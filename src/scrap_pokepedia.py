@@ -1,7 +1,7 @@
 import os
 import time
 import json
-from typing import List
+from typing import List, Optional
 import requests
 from bs4 import BeautifulSoup
 
@@ -9,11 +9,11 @@ BASE_URL = "https://www.pokepedia.fr"
 API_URL = f"{BASE_URL}/api.php"
 DATA_DIR = "data/pokepedia"
 REQUEST_DELAY = 0.5
-MAX_PAGES = 50
+MAX_PAGES = None  # Parcours complet par défaut
 
 
-def get_pokemon_urls(max_pages: int = MAX_PAGES) -> List[str]:
-    """Retrieve Pokémon page URLs from Poképedia."""
+def get_all_page_titles(limit: Optional[int] = MAX_PAGES) -> List[str]:
+    """Récupère la liste de toutes les pages principales."""
     params = {
         "action": "query",
         "format": "json",
@@ -21,11 +21,13 @@ def get_pokemon_urls(max_pages: int = MAX_PAGES) -> List[str]:
         "aplimit": "500",
         "apnamespace": "0",
     }
-    urls: List[str] = []
-    token = None
-    while len(urls) < max_pages:
+    titles: List[str] = []
+    token: Optional[str] = None
+
+    while True:
         if token:
             params["apcontinue"] = token
+
         try:
             resp = requests.get(API_URL, params=params)
             resp.raise_for_status()
@@ -33,30 +35,43 @@ def get_pokemon_urls(max_pages: int = MAX_PAGES) -> List[str]:
         except Exception as exc:
             print(f"Erreur API Poképédia: {exc}")
             break
+
         pages = data.get("query", {}).get("allpages", [])
         for page in pages:
-            if len(urls) >= max_pages:
+            titles.append(page.get("title", ""))
+            if limit and len(titles) >= limit:
                 break
-            title = page.get("title", "")
-            if title.startswith("Pokémon"):
-                slug = title.replace(" ", "_")
-                urls.append(f"{BASE_URL}/{slug}")
+
+        if limit and len(titles) >= limit:
+            break
+
         token = data.get("continue", {}).get("apcontinue")
         if not token:
             break
+
         time.sleep(REQUEST_DELAY)
-    return urls[:max_pages]
+
+    return titles[:limit] if limit else titles
+
+
+def title_to_url(title: str) -> str:
+    slug = title.replace(" ", "_")
+    return f"{BASE_URL}/{slug}"
 
 
 def extract_paragraphs(html: str) -> str:
-    """Extract all meaningful paragraphs from a Poképedia page."""
+    """Extrait les paragraphes pertinents d'une page."""
     soup = BeautifulSoup(html, "html.parser")
 
     for tag in soup(["script", "style", "footer", "nav", "header", "table"]):
         tag.decompose()
 
     content = soup.find("div", class_="mw-parser-output") or soup
-    paragraphs = [p.get_text(" ", strip=True) for p in content.find_all("p") if p.get_text(strip=True)]
+    paragraphs = [
+        p.get_text(" ", strip=True)
+        for p in content.find_all("p")
+        if p.get_text(strip=True)
+    ]
     return "\n\n".join(paragraphs)
 
 
@@ -65,6 +80,15 @@ def fetch_page(url: str) -> str:
     resp = requests.get(url, headers=headers)
     resp.raise_for_status()
     return extract_paragraphs(resp.text)
+
+
+def is_relevant(title: str, content: str) -> bool:
+    """Détermine si la page concerne l'univers Pokémon."""
+    title_lower = title.lower()
+    if "pokémon" in title_lower or "histoire" in title_lower:
+        return True
+    content_lower = content.lower()
+    return "pokémon" in content_lower
 
 
 def save_content(name: str, url: str, content: str):
@@ -76,15 +100,18 @@ def save_content(name: str, url: str, content: str):
 
 
 def scrape_pokepedia(max_pages: int = MAX_PAGES):
-    urls = get_pokemon_urls(max_pages)
-    for url in urls:
-        name = url.split("/")[-1]
+    titles = get_all_page_titles(max_pages)
+    for title in titles:
+        url = title_to_url(title)
         try:
             text = fetch_page(url)
-            save_content(name, url, text)
-            time.sleep(REQUEST_DELAY)
         except Exception as exc:
             print(f"Erreur lors de la récupération de {url}: {exc}")
+            continue
+
+        if is_relevant(title, text):
+            save_content(title, url, text)
+        time.sleep(REQUEST_DELAY)
 
 
 if __name__ == "__main__":

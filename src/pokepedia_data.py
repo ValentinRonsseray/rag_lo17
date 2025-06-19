@@ -56,16 +56,28 @@ class PokepediaData:
         pokepedia_info = self.get_pokemon_info(name)
 
         if pokepedia_info:
-            # Ajout des informations Poképédia
-            pokemon["pokepedia"] = {
-                "description": pokepedia_info.get("description", ""),
-                "biology": pokepedia_info.get("biology", ""),
-                "behavior": pokepedia_info.get("behavior", ""),
-                "habitat": pokepedia_info.get("habitat", ""),
-                "trivia": pokepedia_info.get("trivia", []),
-                "evolution": pokepedia_info.get("evolution", ""),
-                "mythology": pokepedia_info.get("mythology", ""),
-            }
+            # Les données peuvent provenir d'un scraping simple (champ "content")
+            # ou être déjà structurées. On harmonise pour le reste du code.
+            pk_data: Dict[str, Any] = {}
+
+            # Texte brut unique
+            if "content" in pokepedia_info:
+                pk_data["description"] = pokepedia_info.get("content", "")
+
+            # Champs structurés si présents
+            for key in [
+                "description",
+                "biology",
+                "behavior",
+                "habitat",
+                "trivia",
+                "evolution",
+                "mythology",
+            ]:
+                if pokepedia_info.get(key):
+                    pk_data[key] = pokepedia_info[key]
+
+            pokemon["pokepedia"] = pk_data
 
         return pokemon
 

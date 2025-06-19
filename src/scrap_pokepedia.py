@@ -48,18 +48,23 @@ def get_pokemon_urls(max_pages: int = MAX_PAGES) -> List[str]:
     return urls[:max_pages]
 
 
-def clean_html(html: str) -> str:
-    """Extract text from raw HTML, removing scripts and style."""
+def extract_paragraphs(html: str) -> str:
+    """Extract all meaningful paragraphs from a Poképedia page."""
     soup = BeautifulSoup(html, "html.parser")
+
     for tag in soup(["script", "style", "footer", "nav", "header", "table"]):
         tag.decompose()
-    return soup.get_text(separator=" ", strip=True)
+
+    content = soup.find("div", class_="mw-parser-output") or soup
+    paragraphs = [p.get_text(" ", strip=True) for p in content.find_all("p") if p.get_text(strip=True)]
+    return "\n\n".join(paragraphs)
 
 
 def fetch_page(url: str) -> str:
-    resp = requests.get(url)
+    headers = {"User-Agent": "Mozilla/5.0"}
+    resp = requests.get(url, headers=headers)
     resp.raise_for_status()
-    return clean_html(resp.text)
+    return extract_paragraphs(resp.text)
 
 
 def save_content(name: str, url: str, content: str):

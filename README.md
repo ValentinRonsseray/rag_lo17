@@ -45,8 +45,9 @@ export GOOGLE_API_KEY='your-api-key'
 ```
 The script checks if Pokémon data and indexes are present. If not,
 it automatically downloads the data from **PokéAPI** and scrapes
-additional information from **Poképedia** before building the indexes
-and launching the Streamlit interface.
+comprehensive paragraphs from **Poképedia** before building the
+indexes and launching the Streamlit interface. The scraped text is
+stored under `data/pokepedia` for reuse.
 
 2. Open your browser and navigate to `http://localhost:8501`
 

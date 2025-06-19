@@ -3,7 +3,7 @@ import streamlit as st
 from pathlib import Path
 from datetime import datetime
 import pandas as pd
-from src.evaluation import RAGEvaluator, context_overlap_score
+from src.evaluation import RAGEvaluator, faithfulness
 
 from src.rag_core import RAGSystem, load_pokepedia_documents
 from src.format_pokeapi_data import create_pokemon_documents
@@ -146,8 +146,8 @@ if question:
 
             # évaluation de la réponse
             with st.spinner("Évaluation de la réponse..."):
-                overlap = context_overlap_score(result["answer"], result["context"])
-                faithfulness = overlap
+                overlap = faithfulness(result["answer"], result["context"])
+                faithfulness_score = overlap
 
             # indicateurs de confiance
             st.subheader("Indicateurs de confiance")
@@ -156,7 +156,7 @@ if question:
             col1, col2 = st.columns(2)
 
             # fidélité
-            hallucination_prob = 1 - faithfulness
+            hallucination_prob = 1 - faithfulness_score
             with col1:
                 st.metric(
                     "Probabilité d'hallucination",
@@ -170,7 +170,7 @@ if question:
                 st.metric("Recouvrement du contexte", f"{overlap:.1%}", delta=None)
 
             # barre de confiance
-            confidence_score = faithfulness
+            confidence_score = faithfulness_score
             st.progress(confidence_score, text="Confiance globale")
 
             # avertissement si hallucination élevée
@@ -206,7 +206,7 @@ with st.expander("Ajouter une référence"):
 
 # journal des hallucinations
 if "answer" in locals() and "reference_answer" in st.session_state:
-    if faithfulness < 0.7:  # seuil d'hallucination
+    if faithfulness_score < 0.7:  # seuil d'hallucination
         log_path = Path("hallucinations.csv")
         log_df = pd.DataFrame(
             [
@@ -215,7 +215,7 @@ if "answer" in locals() and "reference_answer" in st.session_state:
                     "question": question,
                     "prediction": result["answer"],
                     "reference": st.session_state.reference_answer,
-                    "faithfulness_score": faithfulness,
+                    "faithfulness_score": faithfulness_score,
                     "search_type": "semantic",
                 }
             ]

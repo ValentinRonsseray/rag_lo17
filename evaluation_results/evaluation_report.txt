@@ -1,0 +1,139 @@
+============================================================
+RAPPORT D'ÉVALUATION RAG POKÉMON
+============================================================
+Date: 2025-06-20 00:18:55
+Nombre total de questions: 5
+
+STATISTIQUES GLOBALES:
+----------------------------------------
+        answer_f1  answer_similarity  ...  context_recall  faithfulness
+mean        0.242              0.502  ...           0.512         0.757
+std         0.179              0.088  ...           0.144         0.124
+min         0.053              0.413  ...           0.292         0.611
+max         0.489              0.646  ...           0.667         0.929
+median      0.211              0.474  ...           0.562         0.762
+
+[5 rows x 5 columns]
+
+ANALYSE PAR TYPE DE QUESTION:
+----------------------------------------
+               answer_f1        ... faithfulness      
+                    mean count  ...         mean count
+expected_type                   ...                   
+categorization     0.229     2  ...        0.641     2
+description        0.132     2  ...        0.871     2
+statistics         0.489     1  ...        0.762     1
+
+[3 rows x 10 columns]
+
+ANALYSE PAR TYPE DE RECHERCHE:
+----------------------------------------
+            answer_f1       answer_similarity  ... context_recall faithfulness      
+                 mean count              mean  ...          count         mean count
+actual_type                                    ...                                  
+semantic        0.242     5             0.502  ...              5        0.757     5
+
+[1 rows x 10 columns]
+
+DISTRIBUTION DES SCORES:
+----------------------------------------
+
+ANSWER_F1:
+  Excellent (≥0.9): 0 questions (0.0%)
+  Bon (0.7-0.9): 0 questions (0.0%)
+  Moyen (0.5-0.7): 0 questions (0.0%)
+  Faible (<0.5): 5 questions (100.0%)
+
+ANSWER_SIMILARITY:
+  Excellent (≥0.9): 0 questions (0.0%)
+  Bon (0.7-0.9): 0 questions (0.0%)
+  Moyen (0.5-0.7): 2 questions (40.0%)
+  Faible (<0.5): 3 questions (60.0%)
+
+CONTEXT_PRECISION:
+  Excellent (≥0.9): 0 questions (0.0%)
+  Bon (0.7-0.9): 0 questions (0.0%)
+  Moyen (0.5-0.7): 0 questions (0.0%)
+  Faible (<0.5): 5 questions (100.0%)
+
+CONTEXT_RECALL:
+  Excellent (≥0.9): 0 questions (0.0%)
+  Bon (0.7-0.9): 0 questions (0.0%)
+  Moyen (0.5-0.7): 3 questions (60.0%)
+  Faible (<0.5): 2 questions (40.0%)
+
+FAITHFULNESS:
+  Excellent (≥0.9): 1 questions (20.0%)
+  Bon (0.7-0.9): 2 questions (40.0%)
+  Moyen (0.5-0.7): 2 questions (40.0%)
+  Faible (<0.5): 0 questions (0.0%)
+
+CORRÉLATIONS ENTRE MÉTRIQUES:
+----------------------------------------
+                   answer_f1  ...  faithfulness
+answer_f1              1.000  ...        -0.424
+answer_similarity      0.855  ...        -0.169
+context_precision     -0.580  ...         0.736
+context_recall         0.440  ...        -0.857
+faithfulness          -0.424  ...         1.000
+
+[5 rows x 5 columns]
+
+TOP 3 QUESTIONS PAR MÉTRIQUE:
+----------------------------------------
+
+ANSWER_F1:
+  1. Quelles sont les statistiques de base de Pikachu ?... (score: 0.489)
+  2. Quels sont les Pokémon de type feu ?... (score: 0.353)
+  3. Parle-moi de l'habitat de Bulbizarre... (score: 0.211)
+
+ANSWER_SIMILARITY:
+  1. Quelles sont les statistiques de base de Pikachu ?... (score: 0.646)
+  2. Parle-moi de l'habitat de Bulbizarre... (score: 0.508)
+  3. Quels sont les Pokémon de type feu ?... (score: 0.474)
+
+FAITHFULNESS:
+  1. Décris le comportement de Charizard... (score: 0.929)
+  2. Parle-moi de l'habitat de Bulbizarre... (score: 0.812)
+  3. Quelles sont les statistiques de base de Pikachu ?... (score: 0.762)
+
+QUESTIONS AVEC LES PLUS MAUVAIS SCORES:
+----------------------------------------
+
+ANSWER_F1 (plus bas):
+  1. Décris le comportement de Charizard... (score: 0.053)
+  2. Quels sont les Pokémon légendaires ?... (score: 0.105)
+  3. Parle-moi de l'habitat de Bulbizarre... (score: 0.211)
+
+FAITHFULNESS (plus bas):
+  1. Quels sont les Pokémon de type feu ?... (score: 0.611)
+  2. Quels sont les Pokémon légendaires ?... (score: 0.672)
+  3. Quelles sont les statistiques de base de Pikachu ?... (score: 0.762)
+
+ANALYSE DÉTAILLÉE DES ERREURS:
+----------------------------------------
+
+Questions avec faible fidélité (<0.7): 2
+Moyenne fidélité pour ces questions: 0.641
+
+  Question: Quels sont les Pokémon de type feu ?
+  Prédiction: Sulfura est un Pokémon de type Feu et Vol (Poképédia). Ponyta est un Pokémon de type Feu (Poképédia)...
+  Référence: Les Pokémon de type feu incluent Salamèche, Reptincel, Dracaufeu, Caninos, Arcanin, Ponyta, Galopa, ...
+  Score fidélité: 0.611
+
+  Question: Quels sont les Pokémon légendaires ?
+  Prédiction: Les Pokémon légendaires sont des Pokémon rares et puissants, souvent associés à des mythes sur la cr...
+  Référence: Les Pokémon légendaires incluent Articuno, Zapdos, Moltres, Mewtwo, Mew, et d'autres....
+  Score fidélité: 0.672
+
+Questions avec faible F1 (<0.5): 5
+Moyenne F1 pour ces questions: 0.242
+
+RÉSUMÉ DES PERFORMANCES:
+----------------------------------------
+Nombre total de questions: 5
+Score F1 moyen: 0.242 ± 0.179
+Similarité moyenne: 0.502 ± 0.088
+Fidélité moyenne: 0.757 ± 0.124
+Précision contexte moyenne: 0.019 ± 0.027
+Rappel contexte moyen: 0.512 ± 0.144

@@ -44,8 +44,9 @@ export GOOGLE_API_KEY='your-api-key'
 ./run_app.sh
 ```
 The script checks if Pokémon data and indexes are present. If not,
-it automatically downloads the data from PokéAPI and builds the indexes
-before launching the Streamlit interface.
+it automatically downloads the data from **PokéAPI** and scrapes
+additional information from **Poképedia** before building the indexes
+and launching the Streamlit interface.
 
 2. Open your browser and navigate to `http://localhost:8501`
 
@@ -69,6 +70,8 @@ docker run -p 8501:8501 -e GOOGLE_API_KEY='your-api-key' rag-qa
 ├── src/
 │   ├── rag_core.py       # Core RAG components
 │   └── evaluation.py     # Evaluation metrics
+│   ├── scrap_pokeapi.py  # Download data from PokéAPI
+│   └── scrap_pokepedia.py # Scrape texts from Poképedia
 ├── data/
 │   └── uploads/          # Uploaded documents
 ├── chroma_db/            # Vector store

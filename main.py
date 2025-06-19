@@ -73,6 +73,12 @@ def check_and_scrape_data():
         if not run_command("python src/scrap_pokeapi.py"):
             return False
 
+    # Vérifier si les données Poképédia existent
+    if not any(Path("data/pokepedia").glob("*.json")):
+        print("Récupération des données Poképédia...")
+        if not run_command("python src/scrap_pokepedia.py"):
+            return False
+
     # Vérifier si les index existent
     if not Path("data/indexes/type_index.json").exists():
         print("Construction des index...")

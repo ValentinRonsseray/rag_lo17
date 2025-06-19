@@ -173,6 +173,11 @@ class RAGSystem:
             k_value = 4 if self.engaged_mode else 2
             self.retriever.search_kwargs["k"] = k_value
 
+    def update_temperature(self, temperature: float):
+        """Met à jour la température du modèle LLM."""
+        self.llm.temperature = temperature
+        print(f"🌡️ Température mise à jour: {temperature}")
+
     @staticmethod
     def _format_docs(docs: List[Document]) -> str:
         return "\n\n".join(doc.page_content for doc in docs)
@@ -195,6 +200,18 @@ class RAGSystem:
         if not self.retriever:
             raise ValueError("Aucun document n'a été intégré (retriever non initialisé).")
 
+        # Debug console - Affichage des informations de requête
+        print("=" * 60)
+        print("DEBUG RAG - NOUVELLE REQUÊTE")
+        print("=" * 60)
+        print(f"Question: {question}")
+        print(f"Température: {self.llm.temperature}")
+        print(f"Max tokens: {self.llm.max_output_tokens}")
+        print(f"Modèle: {self.llm.model}")
+        print(f"Mode engagé: {self.engaged_mode}")
+        print(f"K documents: {self.retriever.search_kwargs.get('k', 'N/A')}")
+        print("-" * 60)
+
         question_lower = question.lower()
 
         # Recherche exacte via HybridIndex
@@ -203,8 +220,11 @@ class RAGSystem:
                 if type_name in question_lower:
                     pk_names = self.hybrid_index.search_by_type(type_name)
                     if pk_names:
+                        print("Recherche exacte par type détectée")
+                        print(f"Résultat: {len(pk_names)} Pokémon trouvés")
+                        print("=" * 60)
                         return {
-                            "answer": f"Les Pokémon de type {type_name} : {', '.join(pk_names)}",
+                            "answer": f"Les Pokémon de type {type_name} : {', '.join(pk_names)}",
                             "context": [],
                             "metadata": [],
                             "search_type": "exact",
@@ -213,8 +233,11 @@ class RAGSystem:
         if any(kw in question_lower for kw in ["légendaire", "legendary", "légendaires", "legendaries"]):
             pk_names = self.hybrid_index.search_by_status("legendary")
             if pk_names:
+                print("Recherche exacte par statut (légendaire) détectée")
+                print(f"Résultat: {len(pk_names)} Pokémon trouvés")
+                print("=" * 60)
                 return {
-                    "answer": f"Les Pokémon légendaires : {', '.join(pk_names)}",
+                    "answer": f"Les Pokémon légendaires : {', '.join(pk_names)}",
                     "context": [],
                     "metadata": [],
                     "search_type": "exact",
@@ -223,18 +246,27 @@ class RAGSystem:
         if any(kw in question_lower for kw in ["mythique", "mythical", "mythiques", "mythicals"]):
             pk_names = self.hybrid_index.search_by_status("mythical")
             if pk_names:
+                print("Recherche exacte par statut (mythique) détectée")
+                print(f"Résultat: {len(pk_names)} Pokémon trouvés")
+                print("=" * 60)
                 return {
-                    "answer": f"Les Pokémon mythiques : {', '.join(pk_names)}",
-                    "context": [],
+                    "answer": f"Les Pokémon mythiques : {', '.join(pk_names)}",
                     "metadata": [],
                     "search_type": "exact",
                 }
 
         # Recherche sémantique (LLM + RAG)
+        print("Recherche sémantique (RAG) en cours...")
         try:
             docs = self.retriever.invoke(question)
+            print(f"📄 Documents récupérés: {len(docs)}")
+            
             answer_chain = self._build_chain()
             answer = answer_chain.invoke(question)
+            
+            print(f"💬 Réponse générée: {len(answer)} caractères")
+            print("=" * 60)
+            
             return {
                 "answer": answer,
                 "context": [doc.page_content for doc in docs],
@@ -242,7 +274,9 @@ class RAGSystem:
                 "search_type": "semantic",
             }
         except Exception as exc:
+            print(f"ERREUR: {exc}")
+            print("=" * 60)
             # En cas d'erreur, on réinitialise Chroma pour éviter les corruptions
             self.vectorstore = None
             self.retriever = None
-            raise RuntimeError(f"Erreur durant la recherche : {exc}") from exc
+            raise RuntimeError(f"Erreur durant la recherche : {exc}") from exc

@@ -70,6 +70,12 @@ with st.sidebar:
     # paramètres du modèle
     st.subheader("Paramètres du modèle")
     temperature = st.slider("Température", 0.0, 1.0, 0.0, 0.1)
+    
+    # Mettre à jour la température du système RAG
+    if hasattr(st.session_state.rag_system, 'llm'):
+        current_temp = st.session_state.rag_system.llm.temperature
+        if abs(temperature - current_temp) > 0.001:  # Éviter les mises à jour inutiles
+            st.session_state.rag_system.update_temperature(temperature)
 
     # mode engagé
     st.subheader("Mode de réponse")

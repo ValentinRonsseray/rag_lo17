@@ -45,9 +45,9 @@ export GOOGLE_API_KEY='your-api-key'
 ```
 The script checks if Pokémon data and indexes are present. If not,
 it automatically downloads the data from **PokéAPI** and scrapes
-Poképedia. All Pokémon pages (namespace 120) are visited and their
-paragraphs are saved under `data/pokepedia` before the indexes are
-built.
+Poképedia. The scraper starts from the category page for the first
+generation Pokémon, downloads every linked page, and saves its
+paragraphs under `data/pokepedia` before the indexes are built.
 
 2. Open your browser and navigate to `http://localhost:8501`
 

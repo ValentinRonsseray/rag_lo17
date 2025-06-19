@@ -1,64 +1,48 @@
 import os
 import time
 import json
-from typing import List, Optional
+from typing import List, Optional, Tuple
 import requests
 from bs4 import BeautifulSoup
 
 BASE_URL = "https://www.pokepedia.fr"
-API_URL = f"{BASE_URL}/api.php"
 DATA_DIR = "data/pokepedia"
 REQUEST_DELAY = 0.5
 MAX_PAGES = None  # Parcours complet par défaut
-AP_NAMESPACE = "120"  # pages Pokémon uniquement
+
+# Catégorie des Pokémon de la première génération
+CATEGORY_URL = (
+    f"{BASE_URL}/Cat%C3%A9gorie:Pok%C3%A9mon_de_la_premi%C3%A8re_g%C3%A9n%C3%A9ration"
+)
 
 
-def get_all_page_titles(limit: Optional[int] = MAX_PAGES) -> List[str]:
-    """Récupère la liste de toutes les pages du namespace Pokémon (120)."""
-    params = {
-        "action": "query",
-        "format": "json",
-        "list": "allpages",
-        "aplimit": "500",
-        "apnamespace": AP_NAMESPACE,
-    }
-    titles: List[str] = []
-    token: Optional[str] = None
+def get_category_links(limit: Optional[int] = MAX_PAGES) -> List[Tuple[str, str]]:
+    """Récupère les liens de la catégorie des Pokémon de première génération."""
+    headers = {"User-Agent": "Mozilla/5.0"}
+    try:
+        resp = requests.get(CATEGORY_URL, headers=headers)
+        resp.raise_for_status()
+    except Exception as exc:
+        print(f"Erreur lors de la récupération de la catégorie: {exc}")
+        return []
 
-    while True:
-        if token:
-            params["apcontinue"] = token
-
-        try:
-            resp = requests.get(API_URL, params=params)
-            resp.raise_for_status()
-            data = resp.json()
-        except Exception as exc:
-            print(f"Erreur API Poképédia: {exc}")
+    soup = BeautifulSoup(resp.text, "html.parser")
+    anchors = soup.select("div.mw-category a")
+    links: List[Tuple[str, str]] = []
+    seen = set()
+    for a in anchors:
+        name = a.get_text(strip=True)
+        href = a.get("href", "")
+        if not name or not href or name in seen:
+            continue
+        seen.add(name)
+        if not href.startswith("http"):
+            href = BASE_URL + href
+        links.append((name, href))
+        if limit and len(links) >= limit:
             break
 
-        pages = data.get("query", {}).get("allpages", [])
-        for page in pages:
-            titles.append(page.get("title", ""))
-            if limit and len(titles) >= limit:
-                break
-
-        if limit and len(titles) >= limit:
-            break
-
-        token = data.get("continue", {}).get("apcontinue")
-        if not token:
-            break
-
-        time.sleep(REQUEST_DELAY)
-
-    return titles[:limit] if limit else titles
-
-
-def title_to_url(title: str) -> str:
-    slug = title.replace(" ", "_")
-    return f"{BASE_URL}/{slug}"
-
+    return links
 
 def extract_paragraphs(html: str) -> str:
     """Extrait les paragraphes pertinents d'une page."""
@@ -92,16 +76,15 @@ def save_content(name: str, url: str, content: str):
 
 
 def scrape_pokepedia(max_pages: int = MAX_PAGES):
-    titles = get_all_page_titles(max_pages)
-    for title in titles:
-        url = title_to_url(title)
+    links = get_category_links(max_pages)
+    for name, url in links:
         try:
             text = fetch_page(url)
         except Exception as exc:
             print(f"Erreur lors de la récupération de {url}: {exc}")
             continue
 
-        save_content(title, url, text)
+        save_content(name, url, text)
         time.sleep(REQUEST_DELAY)
 
 

@@ -61,7 +61,7 @@ class RAGSystem:
 
     Cette version est optimisée pour fournir des réponses concises : le prompt
     impose une limite de longueur et la configuration LLM bride le nombre de
-    tokens générés. Par défaut, on cherche 2 documents (k=2) pour réduire la
+    tokens générés. Par défaut, on cherche 2 documents (k=2) pour réduire la
     surcharge contextuelle.
     """
 
@@ -213,11 +213,31 @@ class RAGSystem:
         print("-" * 60)
 
         question_lower = question.lower()
-
         # Recherche exacte via HybridIndex
+        # Mapping des noms de types en français vers l'anglais
+        type_fr_to_en = {
+            "feu": "fire", "eau": "water", "plante": "grass", "électrik": "electric",
+            "glace": "ice", "combat": "fighting", "poison": "poison", "sol": "ground",
+            "vol": "flying", "psy": "psychic", "insecte": "bug", "roche": "rock",
+            "spectre": "ghost", "dragon": "dragon", "ténèbres": "dark", "acier": "steel",
+            "fée": "fairy", "normal": "normal"
+        }
+        
+        # Mapping des noms d'habitats en français vers l'anglais
+        habitat_fr_to_en = {
+            "urbain": "urban", "ville": "urban", "cité": "urban", "montagne": "mountain", 
+            "montagnes": "mountain", "prairie": "grassland", "plaine": "grassland", 
+            "herbe": "grassland", "rare": "rare", "forêt": "forest", "bois": "forest",
+            "bord de l'eau": "waters-edge", "rivière": "waters-edge", "lac": "waters-edge",
+            "mer": "sea", "océan": "sea", "grotte": "cave", "caverne": "cave",
+            "terrain accidenté": "rough-terrain", "terrain difficile": "rough-terrain"
+        }
+
         if any(kw in question_lower for kw in ["type", "est de type", "sont de type", "liste", "quels sont"]):
             for type_name in self.hybrid_index.indexes.get("type", {}):
-                if type_name in question_lower:
+                # Vérifie le nom du type en anglais et en français
+                if type_name in question_lower or any(fr_type for fr_type, en_type in type_fr_to_en.items() 
+                                                    if fr_type in question_lower and en_type == type_name):
                     pk_names = self.hybrid_index.search_by_type(type_name)
                     if pk_names:
                         print("Recherche exacte par type détectée")
@@ -225,6 +245,26 @@ class RAGSystem:
                         print("=" * 60)
                         return {
                             "answer": f"Les Pokémon de type {type_name} : {', '.join(pk_names)}",
+                            "context": [],
+                            "metadata": [],
+                            "search_type": "exact",
+                        }
+
+        # Recherche par habitat
+        if any(kw in question_lower for kw in ["habitat", "habite", "vit dans", "trouve dans", "habitat de", "habitats"]):
+            for habitat_name in self.hybrid_index.indexes.get("habitat", {}):
+                # Vérifie le nom de l'habitat en anglais et en français
+                if habitat_name in question_lower or any(fr_habitat for fr_habitat, en_habitat in habitat_fr_to_en.items() 
+                                                        if fr_habitat in question_lower and en_habitat == habitat_name):
+                    pk_names = self.hybrid_index.search_by_habitat(habitat_name)
+                    if pk_names:
+                        # Traduire le nom de l'habitat pour l'affichage
+                        habitat_display = next((fr for fr, en in habitat_fr_to_en.items() if en == habitat_name), habitat_name)
+                        print("Recherche exacte par habitat détectée")
+                        print(f"Résultat: {len(pk_names)} Pokémon trouvés")
+                        print("=" * 60)
+                        return {
+                            "answer": f"Les Pokémon de l'habitat {habitat_display} : {', '.join(pk_names)}",
                             "context": [],
                             "metadata": [],
                             "search_type": "exact",
@@ -259,12 +299,12 @@ class RAGSystem:
         print("Recherche sémantique (RAG) en cours...")
         try:
             docs = self.retriever.invoke(question)
-            print(f"📄 Documents récupérés: {len(docs)}")
+            print(f"Documents récupérés: {len(docs)}")
             
             answer_chain = self._build_chain()
             answer = answer_chain.invoke(question)
             
-            print(f"💬 Réponse générée: {len(answer)} caractères")
+            print(f"Réponse générée: {len(answer)} caractères")
             print("=" * 60)
             
             return {

@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 
 BASE_URL = "https://www.pokepedia.fr"
 DATA_DIR = "data/pokepedia"
-REQUEST_DELAY = 0.5
+REQUEST_DELAY = 0.1
 MAX_PAGES = None  # Parcours complet par défaut
 
 # Catégorie des Pokémon de la première génération

@@ -21,39 +21,13 @@ from src.rag_core import RAGSystem
 from src.evaluation import RAGEvaluator
 from src.format_pokeapi_data import create_pokemon_documents
 
-# questions de test
-TEST_QUESTIONS = [
-    {
-        "question": "Quels sont les Pokémon de type fire ?",
-        "reference": "arcanine-hisui, arcanine, charizard-gmax, charizard-mega-x, charizard-mega-y, charizard, charmander, charmeleon, flareon, growlithe-hisui, growlithe, magmar, marowak-alola, moltres, ninetales, ponyta, rapidash, vulpix",
-        "type": "semantic",
-    },
-    {
-        "question": "Décris-moi Arcanin",
-        "reference": "Arcanin est un Pokémon de type Feu qui a les capacités intimidate, flash-fire et justified. Ses statistiques sont : PV 90, Attaque 110, Défense 80, Attaque Spéciale 100, Défense Spéciale 80 et Vitesse 95.",
-        "type": "semantic",
-    },
-    {
-        "question": "Liste les Pokémon légendaires",
-        "reference": "articuno-galar, articuno, mewtwo-mega-x, mewtwo-mega-y, mewtwo, moltres-galar, moltres, zapdos-galar, zapdos",
-        "type": "semantic",
-    },
-    {
-        "question": "Quelles sont les statistiques de base de Pikachu ?",
-        "reference": "PV 35, Attaque 55, Défense 40, Attaque Spéciale 50, Défense Spéciale 50, Vitesse 90.",
-        "type": "semantic",
-    },
-    {
-        "question": "Quels sont les Pokémon mythiques ?",
-        "reference": "mew",
-        "type": "semantic",
-    },
-    {
-        "question": "Quels Pokémon vivent dans les caves ?",
-        "reference": "diglett-alola, diglett, dugtrio-alola, dugtrio, gastly, gengar-gmax, gengar-mega, gengar, golbat, haunter, onix, zubat",
-        "type": "semantic",
-    }
-]
+
+def load_questions(path: Path) -> List[Dict[str, Any]]:
+    """Charge un fichier JSON contenant les questions de test."""
+    import json
+
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
 
 
 async def evaluate_response(
@@ -93,8 +67,8 @@ def save_results(results_df: pd.DataFrame, output_dir: Path):
         print(f"erreur de sauvegarde : {e}")
 
 
-async def run_evaluation():
-    """lance l'évaluation"""
+async def run_evaluation(dataset_path: Path | None = None) -> None:
+    """Lance l'évaluation RAG sur un jeu de questions."""
     print("initialisation...")
     rag_system = RAGSystem()
     evaluator = RAGEvaluator()
@@ -112,10 +86,15 @@ async def run_evaluation():
         # crée le dossier temporaire
         output_dir = Path(tempfile.mkdtemp(prefix="eval_results_"))
 
+        if dataset_path is None:
+            raise ValueError("Chemin du jeu de questions non fourni")
+
+        test_questions = load_questions(dataset_path)
+
         # évalue chaque question
         print("\ndébut de l'évaluation...")
-        for i, test_case in enumerate(TEST_QUESTIONS, 1):
-            print(f"\ntest {i}/{len(TEST_QUESTIONS)}: {test_case['question']}")
+        for i, test_case in enumerate(test_questions, 1):
+            print(f"\ntest {i}/{len(test_questions)}: {test_case['question']}")
 
             # obtient la réponse
             result = rag_system.query(test_case["question"])
@@ -127,7 +106,6 @@ async def run_evaluation():
 
             # affiche les résultats
             print(f"type de recherche: {result.get('search_type', 'semantic')}")
-            print(f"correspondance exacte: {result_data['exact_match']:.2f}")
             print(f"f1 réponse: {result_data['answer_f1']:.2f}")
             print(f"similarité: {result_data['answer_similarity']:.2f}")
             print(f"precision contexte: {result_data['context_precision']:.2f}")
@@ -152,7 +130,6 @@ async def run_evaluation():
         print(
             results_df.groupby("actual_type")[
                 [
-                    "exact_match",
                     "answer_f1",
                     "answer_similarity",
                     "context_precision",
@@ -166,7 +143,6 @@ async def run_evaluation():
         print(
             results_df[
                 [
-                    "exact_match",
                     "answer_f1",
                     "answer_similarity",
                     "context_precision",
@@ -211,5 +187,8 @@ if __name__ == "__main__":
     # enregistre la fonction de nettoyage
     atexit.register(cleanup)
 
+    # chemin du jeu de questions
+    dataset = Path(sys.argv[1]) if len(sys.argv) > 1 else None
+
     # lance l'évaluation
-    asyncio.run(run_evaluation())
+    asyncio.run(run_evaluation(dataset))

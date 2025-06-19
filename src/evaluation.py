@@ -23,11 +23,6 @@ def _tokenize(text: str) -> List[str]:
     return _normalize(text).split()
 
 
-def exact_match(prediction: str, reference: str) -> float:
-    """Score d'égalité exacte après normalisation."""
-    return float(_normalize(prediction) == _normalize(reference))
-
-
 def f1_score(prediction: str, reference: str) -> float:
     """Calcule le score F1 entre la prédiction et la référence."""
     pred_tokens = _tokenize(prediction)
@@ -91,7 +86,6 @@ class RAGEvaluator:
     async def evaluate_response(self, prediction: str, reference: str, context: List[str]) -> Dict[str, float]:
         """Évalue une paire prédiction/référence avec son contexte."""
         return {
-            "exact_match": exact_match(prediction, reference),
             "answer_f1": f1_score(prediction, reference),
             "answer_similarity": similarity(prediction, reference),
             "context_precision": context_precision(context, reference),

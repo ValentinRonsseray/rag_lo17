@@ -6,7 +6,7 @@ A Retrieval-Augmented Generation (RAG) system built with LangChain, Google's Gem
 
 - Document ingestion and embedding using ChromaDB
 - Question answering using Google's Gemini model
-- Evaluation metrics (Exact Match, F1 Score, Faithfulness)
+- Evaluation metrics inspired by RAGAS (F1, similarity, context precision/recall, faithfulness)
 - Hallucination detection and logging
 - Streamlit web interface
 - Docker support for easy deployment
@@ -83,15 +83,14 @@ docker run -p 8501:8501 -e GOOGLE_API_KEY='your-api-key' rag-qa
 
 ## Evaluation
 
-The system includes several evaluation metrics:
-- Exact Match Score
-- F1 Score
-- Faithfulness Score (LLM-based)
+The system includes several evaluation metrics inspired by RAGAS:
+- Answer F1 Score
+- Answer similarity
+- Context precision and recall
+- Faithfulness
 
 Results are saved in `eval_metrics.csv` and visualized in `evaluation_metrics.png`.
-The `evaluate_rag.py` script includes a small dataset of eight sample
-questions with their expected answers in order to benchmark the system.
-Feel free to adapt these examples to suit your needs.
+Provide your own evaluation dataset as a JSON file when running `evaluate_rag.py`.
 
 ## Hallucination Detection
 

@@ -1,0 +1,43 @@
+QUESTIONS DE DÉMO - POKÉDEX IA
+================================
+
+Questions pour tester les différentes fonctionnalités du système RAG :
+
+1. RECHERCHE EXACTE PAR TYPE
+   "Quels sont les Pokémon de type feu ?"
+
+2. RECHERCHE EXACTE PAR HABITAT
+   "Quels Pokémon vivent en montagne ?"
+
+3. RECHERCHE EXACTE PAR STATUT
+   "Liste les Pokémon légendaires"
+
+4. RECHERCHE SÉMANTIQUE COMPLEXE
+   "Qui est le plus rapide entre Pikachu et Raichu ?"
+
+5. RECHERCHE SÉMANTIQUE AVEC COMPARAISON
+   "Quelles sont les différences entre Charizard et Blastoise ?"
+
+6. RECHERCHE SÉMANTIQUE SPÉCIFIQUE
+   "Décris-moi les capacités spéciales de Mewtwo"
+
+7. RECHERCHE SÉMANTIQUE AVEC CONTEXTE
+   "Quel est l'habitat naturel de Bulbasaur et comment s'adapte-t-il ?"
+
+8. RECHERCHE EXACTE PAR HABITAT (FRANÇAIS)
+   "Quels Pokémon trouvent-on dans la forêt ?"
+
+9. RECHERCHE SÉMANTIQUE AVEC ÉVOLUTION
+   "Comment évolue Charmander et quelles sont ses formes finales ?"
+
+10. RECHERCHE SÉMANTIQUE COMPLEXE AVEC STATISTIQUES
+    "Quel Pokémon a les meilleures statistiques de défense parmi les starters ?"
+
+================================
+NOTES POUR LA DÉMO :
+- Questions 1-3 : Testent les recherches exactes (rapides)
+- Questions 4-7 : Testent les recherches sémantiques (RAG)
+- Questions 8-10 : Testent la diversité et la complexité
+- Varier la température pour voir l'impact sur les réponses
+- Tester le mode engagé vs mode normal
+- Observer les métriques de confiance pour les réponses sémantiques 

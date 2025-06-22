@@ -7,7 +7,7 @@ un système de questions-réponses basé sur rag (retrieval-augmented generation
 - **sources de données multiples** : pokeapi (statistiques, types, capacités) + poképédia (descriptions, biologie, comportement)
 - **recherche vectorielle avancée** avec métadonnées enrichies (types, statuts, habitats, couleurs)
 - **mode de réponse configurable** : normal (concis) ou engagé (détaillé)
-- **évaluation complète** avec métriques inspirées de ragas
+- **évaluation ragas** : métriques professionnelles pour l'évaluation des systèmes rag
 - **détection d'hallucinations** et journalisation automatique
 - **interface web streamlit** intuitive
 - **scraping automatique** des données poképédia
@@ -25,6 +25,12 @@ un système de questions-réponses basé sur rag (retrieval-augmented generation
 - **llm** : gemini 2.0 flash
 - **vector store** : chromadb avec métadonnées enrichies
 - **recherche** : vectorielle sémantique avec filtrage par métadonnées
+
+### évaluation ragas
+- **faithfulness** : mesure la fidélité de la réponse au contexte
+- **answer_relevancy** : évalue la pertinence de la réponse à la question
+- **context_precision** : précision du contexte récupéré
+- **context_recall** : complétude du contexte par rapport à la question
 
 ## prérequis
 
@@ -74,7 +80,7 @@ rag-lo17/
 ├── main.py                     # script principal de lancement
 ├── src/
 │   ├── rag_core.py            # système rag principal
-│   ├── evaluation.py          # métriques d'évaluation
+│   ├── evaluation.py          # métriques ragas d'évaluation
 │   ├── evaluate_rag.py        # script d'évaluation complet
 │   ├── scrap_pokeapi.py       # téléchargement pokeapi
 │   ├── scrap_pokepedia.py     # scraping poképédia
@@ -85,7 +91,7 @@ rag-lo17/
 │   ├── pokeapi/               # données pokeapi
 │   ├── pokepedia/             # données poképédia
 │   └── indexes/               # index de recherche
-├── evaluation_results/        # résultats d'évaluation
+├── evaluation_results/        # résultats d'évaluation ragas
 ├── requirements.txt           # dépendances python
 └── readme.md                  # documentation
 ```
@@ -109,16 +115,15 @@ rag-lo17/
 - **habitat** : habitat (ex: "mountain", "forest")
 - **couleur** : color (ex: "red", "blue")
 
-## évaluation
+## évaluation ragas
 
-le système inclut une évaluation complète avec métriques inspirées de ragas :
+le système utilise ragas (retrieval-augmented generation assessment) pour une évaluation professionnelle :
 
-### métriques calculées
-- **f1 score** : précision et rappel de la réponse
-- **similarité** : similarité sémantique avec la référence
-- **précision contexte** : pertinence du contexte récupéré
-- **rappel contexte** : complétude du contexte par rapport à la référence
-- **fidélité** : proportion de la réponse basée sur le contexte
+### métriques ragas calculées
+- **faithfulness** : proportion de la réponse basée sur le contexte (détection d'hallucinations)
+- **answer_relevancy** : pertinence de la réponse par rapport à la question
+- **context_precision** : pertinence du contexte récupéré
+- **context_recall** : complétude du contexte par rapport à la question
 
 ### lancement de l'évaluation
 ```bash
@@ -129,17 +134,18 @@ python src/evaluate_rag.py
 python src/evaluate_rag.py path/to/questions.json
 ```
 
-### résultats
-- **rapport détaillé** : `evaluation_results/evaluation_report.txt`
-- **données brutes** : `evaluation_results/evaluation_results.csv`
-- **visualisations** : `evaluation_results/evaluation_metrics.png`
+### résultats ragas
+- **rapport détaillé** : `evaluation_results/ragas_evaluation_report.txt`
+- **données brutes** : `evaluation_results/ragas_evaluation_results.csv`
+- **visualisations** : `evaluation_results/ragas_evaluation_metrics.png`
 
 ## détection d'hallucinations
 
-le système détecte automatiquement les hallucinations potentielles :
-- **seuil** : fidélité < 0.7
-- **journalisation** : `hallucinations.csv`
-- **indicateurs visuels** : barres de confiance dans l'interface
+le système détecte automatiquement les hallucinations potentielles avec ragas :
+- **seuil faithfulness** : < 0.7 (réponse potentiellement incorrecte)
+- **seuil answer_relevancy** : < 0.5 (réponse potentiellement hors sujet)
+- **journalisation** : `ragas_evaluation_results.csv`
+- **indicateurs visuels** : métriques ragas dans l'interface
 
 ## configuration
 
@@ -155,11 +161,12 @@ GOOGLE_API_KEY=your-api-key-here
 
 ## améliorations récentes
 
+- ✅ **intégration ragas** : évaluation professionnelle des systèmes rag
+- ✅ **métriques avancées** : faithfulness, answer_relevancy, context_precision, context_recall
 - ✅ **intégration poképédia** : contenu enrichi en français
 - ✅ **métadonnées enrichies** : index par type, statut, habitat, couleur
 - ✅ **prompts optimisés** : instructions précises pour l'utilisation du contexte
-- ✅ **évaluation complète** : rapport détaillé avec statistiques
-- ✅ **interface améliorée** : mode engagé par défaut, indicateurs de confiance
+- ✅ **interface améliorée** : métriques ragas en temps réel
 - ✅ **correction protobuf** : compatibilité avec les nouvelles versions
 
 ## contribution

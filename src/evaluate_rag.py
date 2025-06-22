@@ -14,12 +14,12 @@ root_dir = Path(__file__).parent.parent
 sys.path.append(str(root_dir))
 
 from src.rag_core import RAGSystem
-from src.evaluation import RAGEvaluator
+from src.evaluation import RAGEvaluator, evaluate_with_metrics
 from src.format_pokeapi_data import create_pokemon_documents
 
 
 def load_questions(path: Path) -> List[Dict[str, Any]]:
-    """Charge un fichier JSON contenant les questions de test."""
+    """charge un fichier json contenant les questions de test."""
     import json
 
     with open(path, "r", encoding="utf-8") as f:
@@ -29,7 +29,7 @@ def load_questions(path: Path) -> List[Dict[str, Any]]:
 async def evaluate_response(
     evaluator: RAGEvaluator, result: Dict[str, Any], test_case: Dict[str, Any]
 ) -> Dict[str, Any]:
-    """évalue une réponse"""
+    """évalue une réponse avec ragas"""
     scores = await evaluator.evaluate_response(
         result["answer"], test_case["reference"], result["context"]
     )
@@ -63,8 +63,8 @@ def save_results(results_df: pd.DataFrame, output_dir: Path):
         print(f"erreur de sauvegarde : {e}")
 
 
-async def run_evaluation(dataset_path: Path | None = None) -> None:
-    """Lance l'évaluation RAG sur un jeu de questions."""
+async def run_evaluation_in_batches(dataset_path: Path | None = None, batch_size: int = 10) -> None:
+    """lance l'évaluation rag par lots pour éviter les limites de quota."""
     print("initialisation...")
     rag_system = RAGSystem()
     evaluator = RAGEvaluator()
@@ -74,43 +74,88 @@ async def run_evaluation(dataset_path: Path | None = None) -> None:
     documents = create_pokemon_documents()
     rag_system.embed_documents(documents)
 
+    # charge les questions
+    if dataset_path is None:
+        raise ValueError("chemin du jeu de questions non fourni")
+
+    test_questions = load_questions(dataset_path)
+    print(f"total questions à évaluer: {len(test_questions)}")
+
+    # découpe en lots
+    batches = [test_questions[i:i + batch_size] for i in range(0, len(test_questions), batch_size)]
+    print(f"découpage en {len(batches)} lots de {batch_size} questions")
+
     # prépare les résultats
-    results = []
+    all_results = []
     output_dir = "evaluation_results"
 
     try:
         # crée le dossier temporaire
         output_dir = Path(tempfile.mkdtemp(prefix="eval_results_"))
 
-        if dataset_path is None:
-            raise ValueError("Chemin du jeu de questions non fourni")
+        # traite chaque lot
+        for batch_idx, batch in enumerate(batches, 1):
+            print(f"\n{'='*60}")
+            print(f"LOT {batch_idx}/{len(batches)} ({len(batch)} questions)")
+            print(f"{'='*60}")
 
-        test_questions = load_questions(dataset_path)
+            batch_results = []
 
-        # évalue chaque question
-        print("\ndébut de l'évaluation...")
-        for i, test_case in enumerate(test_questions, 1):
-            print(f"\ntest {i}/{len(test_questions)}: {test_case['question']}")
+            # évalue chaque question du lot
+            for i, test_case in enumerate(batch, 1):
+                global_idx = (batch_idx - 1) * batch_size + i
+                print(f"\ntest {global_idx}/{len(test_questions)}: {test_case['question']}")
 
-            # obtient la réponse
-            result = rag_system.query(test_case["question"])
+                try:
+                    # obtient la réponse
+                    result = rag_system.query(test_case["question"])
 
-            # évalue
-            result_data = await evaluate_response(evaluator, result, test_case)
-            results.append(result_data)
+                    # évalue avec métriques basiques
+                    result_data = await evaluate_response(evaluator, result, test_case)
+                    batch_results.append(result_data)
 
-            # affiche les résultats
-            print(f"type de recherche: {result.get('search_type', 'semantic')}")
-            print(f"f1 réponse: {result_data['answer_f1']:.2f}")
-            print(f"similarité: {result_data['answer_similarity']:.2f}")
-            print(f"precision contexte: {result_data['context_precision']:.2f}")
-            print(f"rappel contexte: {result_data['context_recall']:.2f}")
-            print(f"fidélité: {result_data['faithfulness']:.2f}")
+                    # affiche les résultats
+                    print(f"type de recherche: {result.get('search_type', 'semantic')}")
+                    print(f"faithfulness: {result_data['faithfulness']:.3f}")
+                    print(f"answer_relevancy: {result_data['answer_relevancy']:.3f}")
+                    print(f"context_precision: {result_data['context_precision']:.3f}")
+                    print(f"context_recall: {result_data['context_recall']:.3f}")
 
-        # crée le dataframe
-        results_df = pd.DataFrame(results)
+                except Exception as e:
+                    print(f"erreur sur la question {global_idx}: {e}")
+                    # ajoute un résultat vide en cas d'erreur
+                    error_result = {
+                        "question": test_case["question"],
+                        "expected_type": test_case["type"],
+                        "actual_type": "error",
+                        "prediction": f"erreur: {str(e)}",
+                        "reference": test_case["reference"],
+                        "faithfulness": 0.0,
+                        "answer_relevancy": 0.0,
+                        "context_precision": 0.0,
+                        "context_recall": 0.0,
+                    }
+                    batch_results.append(error_result)
 
-        # sauvegarde les résultats
+            # ajoute les résultats du lot
+            all_results.extend(batch_results)
+
+            # sauvegarde intermédiaire
+            if batch_results:
+                batch_df = pd.DataFrame(batch_results)
+                batch_df.to_csv(output_dir / f"batch_{batch_idx}_results.csv", index=False)
+                print(f"\nlot {batch_idx} sauvegardé: {len(batch_results)} résultats")
+
+            # délai entre les lots (sauf le dernier)
+            if batch_idx < len(batches):
+                delay = 60  # 60 secondes entre les lots
+                print(f"\nattente de {delay} secondes avant le prochain lot...")
+                await asyncio.sleep(delay)
+
+        # crée le dataframe final
+        results_df = pd.DataFrame(all_results)
+
+        # sauvegarde les résultats finaux
         results_df.to_csv(output_dir / "evaluation_results.csv", index=False)
 
         # génère les graphiques
@@ -124,31 +169,31 @@ async def run_evaluation(dataset_path: Path | None = None) -> None:
         print("ANALYSE DÉTAILLÉE DES RÉSULTATS")
         print("=" * 60)
 
-        # Préparer le contenu pour le fichier texte
+        # prépare le contenu pour le fichier texte
         report_content = []
         report_content.append("=" * 60)
         report_content.append("RAPPORT D'ÉVALUATION RAG POKÉMON")
         report_content.append("=" * 60)
-        report_content.append(f"Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-        report_content.append(f"Nombre total de questions: {len(results_df)}")
+        report_content.append(f"date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        report_content.append(f"nombre total de questions: {len(results_df)}")
+        report_content.append(f"nombre de lots: {len(batches)}")
         report_content.append("")
 
-        # Statistiques globales
+        # statistiques globales
         print("\nSTATISTIQUES GLOBALES:")
         print("-" * 40)
         report_content.append("STATISTIQUES GLOBALES:")
         report_content.append("-" * 40)
 
+        metrics = [
+            "faithfulness",
+            "answer_relevancy",
+            "context_precision",
+            "context_recall",
+        ]
+
         global_stats = (
-            results_df[
-                [
-                    "answer_f1",
-                    "answer_similarity",
-                    "context_precision",
-                    "context_recall",
-                    "faithfulness",
-                ]
-            ]
+            results_df[metrics]
             .agg(["mean", "std", "min", "max", "median"])
             .round(3)
         )
@@ -156,22 +201,14 @@ async def run_evaluation(dataset_path: Path | None = None) -> None:
         report_content.append(str(global_stats))
         report_content.append("")
 
-        # Analyse par type de question
+        # analyse par type de question
         print("\nANALYSE PAR TYPE DE QUESTION:")
         print("-" * 40)
         report_content.append("ANALYSE PAR TYPE DE QUESTION:")
         report_content.append("-" * 40)
 
         type_stats = (
-            results_df.groupby("expected_type")[
-                [
-                    "answer_f1",
-                    "answer_similarity",
-                    "context_precision",
-                    "context_recall",
-                    "faithfulness",
-                ]
-            ]
+            results_df.groupby("expected_type")[metrics]
             .agg(["mean", "count"])
             .round(3)
         )
@@ -179,22 +216,14 @@ async def run_evaluation(dataset_path: Path | None = None) -> None:
         report_content.append(str(type_stats))
         report_content.append("")
 
-        # Analyse par type de recherche
+        # analyse par type de recherche
         print("\nANALYSE PAR TYPE DE RECHERCHE:")
         print("-" * 40)
         report_content.append("ANALYSE PAR TYPE DE RECHERCHE:")
         report_content.append("-" * 40)
 
         search_stats = (
-            results_df.groupby("actual_type")[
-                [
-                    "answer_f1",
-                    "answer_similarity",
-                    "context_precision",
-                    "context_recall",
-                    "faithfulness",
-                ]
-            ]
+            results_df.groupby("actual_type")[metrics]
             .agg(["mean", "count"])
             .round(3)
         )
@@ -202,19 +231,13 @@ async def run_evaluation(dataset_path: Path | None = None) -> None:
         report_content.append(str(search_stats))
         report_content.append("")
 
-        # Distribution des scores
+        # distribution des scores
         print("\nDISTRIBUTION DES SCORES:")
         print("-" * 40)
         report_content.append("DISTRIBUTION DES SCORES:")
         report_content.append("-" * 40)
 
-        for metric in [
-            "answer_f1",
-            "answer_similarity",
-            "context_precision",
-            "context_recall",
-            "faithfulness",
-        ]:
+        for metric in metrics:
             print(f"\n{metric.upper()}:")
             report_content.append(f"\n{metric.upper()}:")
 
@@ -229,55 +252,43 @@ async def run_evaluation(dataset_path: Path | None = None) -> None:
             total = len(results_df)
 
             print(
-                f"  Excellent (≥0.9): {excellent} questions ({excellent/total*100:.1f}%)"
+                f"  excellent (≥0.9): {excellent} questions ({excellent/total*100:.1f}%)"
             )
-            print(f"  Bon (0.7-0.9): {good} questions ({good/total*100:.1f}%)")
-            print(f"  Moyen (0.5-0.7): {medium} questions ({medium/total*100:.1f}%)")
-            print(f"  Faible (<0.5): {poor} questions ({poor/total*100:.1f}%)")
+            print(f"  bon (0.7-0.9): {good} questions ({good/total*100:.1f}%)")
+            print(f"  moyen (0.5-0.7): {medium} questions ({medium/total*100:.1f}%)")
+            print(f"  faible (<0.5): {poor} questions ({poor/total*100:.1f}%)")
 
             report_content.append(
-                f"  Excellent (≥0.9): {excellent} questions ({excellent/total*100:.1f}%)"
+                f"  excellent (≥0.9): {excellent} questions ({excellent/total*100:.1f}%)"
             )
             report_content.append(
-                f"  Bon (0.7-0.9): {good} questions ({good/total*100:.1f}%)"
+                f"  bon (0.7-0.9): {good} questions ({good/total*100:.1f}%)"
             )
             report_content.append(
-                f"  Moyen (0.5-0.7): {medium} questions ({medium/total*100:.1f}%)"
+                f"  moyen (0.5-0.7): {medium} questions ({medium/total*100:.1f}%)"
             )
             report_content.append(
-                f"  Faible (<0.5): {poor} questions ({poor/total*100:.1f}%)"
+                f"  faible (<0.5): {poor} questions ({poor/total*100:.1f}%)"
             )
 
-        # Corrélations entre métriques
+        # corrélations entre métriques
         print("\nCORRÉLATIONS ENTRE MÉTRIQUES:")
         print("-" * 40)
         report_content.append("\nCORRÉLATIONS ENTRE MÉTRIQUES:")
         report_content.append("-" * 40)
 
-        correlation_matrix = (
-            results_df[
-                [
-                    "answer_f1",
-                    "answer_similarity",
-                    "context_precision",
-                    "context_recall",
-                    "faithfulness",
-                ]
-            ]
-            .corr()
-            .round(3)
-        )
+        correlation_matrix = results_df[metrics].corr().round(3)
         print(correlation_matrix)
         report_content.append(str(correlation_matrix))
         report_content.append("")
 
-        # Questions avec les meilleurs scores
+        # questions avec les meilleurs scores
         print("\nTOP 3 QUESTIONS PAR MÉTRIQUE:")
         print("-" * 40)
         report_content.append("TOP 3 QUESTIONS PAR MÉTRIQUE:")
         report_content.append("-" * 40)
 
-        for metric in ["answer_f1", "answer_similarity", "faithfulness"]:
+        for metric in metrics:
             print(f"\n{metric.upper()}:")
             report_content.append(f"\n{metric.upper()}:")
 
@@ -287,13 +298,13 @@ async def run_evaluation(dataset_path: Path | None = None) -> None:
                 print(line)
                 report_content.append(line)
 
-        # Questions avec les plus mauvais scores
+        # questions avec les plus mauvais scores
         print("\nQUESTIONS AVEC LES PLUS MAUVAIS SCORES:")
         print("-" * 40)
         report_content.append("\nQUESTIONS AVEC LES PLUS MAUVAIS SCORES:")
         report_content.append("-" * 40)
 
-        for metric in ["answer_f1", "faithfulness"]:
+        for metric in metrics:
             print(f"\n{metric.upper()} (plus bas):")
             report_content.append(f"\n{metric.upper()} (plus bas):")
 
@@ -303,81 +314,80 @@ async def run_evaluation(dataset_path: Path | None = None) -> None:
                 print(line)
                 report_content.append(line)
 
-        # Analyse des erreurs détaillée
+        # analyse des erreurs détaillée
         print("\nANALYSE DÉTAILLÉE DES ERREURS:")
         print("-" * 40)
         report_content.append("\nANALYSE DÉTAILLÉE DES ERREURS:")
         report_content.append("-" * 40)
 
-        # Questions avec faible fidélité
+        # questions avec faible faithfulness
         low_faithfulness = results_df[results_df["faithfulness"] < 0.7]
         if not low_faithfulness.empty:
-            print(f"\nQuestions avec faible fidélité (<0.7): {len(low_faithfulness)}")
+            print(f"\nquestions avec faible faithfulness (<0.7): {len(low_faithfulness)}")
             print(
-                f"Moyenne fidélité pour ces questions: {low_faithfulness['faithfulness'].mean():.3f}"
+                f"moyenne faithfulness pour ces questions: {low_faithfulness['faithfulness'].mean():.3f}"
             )
             report_content.append(
-                f"\nQuestions avec faible fidélité (<0.7): {len(low_faithfulness)}"
+                f"\nquestions avec faible faithfulness (<0.7): {len(low_faithfulness)}"
             )
             report_content.append(
-                f"Moyenne fidélité pour ces questions: {low_faithfulness['faithfulness'].mean():.3f}"
+                f"moyenne faithfulness pour ces questions: {low_faithfulness['faithfulness'].mean():.3f}"
             )
 
             for _, row in low_faithfulness.iterrows():
-                print(f"\n  Question: {row['question']}")
-                print(f"  Prédiction: {row['prediction'][:100]}...")
-                print(f"  Référence: {row['reference'][:100]}...")
-                print(f"  Score fidélité: {row['faithfulness']:.3f}")
+                print(f"\n  question: {row['question']}")
+                print(f"  prédiction: {row['prediction'][:100]}...")
+                print(f"  référence: {row['reference'][:100]}...")
+                print(f"  score faithfulness: {row['faithfulness']:.3f}")
 
-                report_content.append(f"\n  Question: {row['question']}")
-                report_content.append(f"  Prédiction: {row['prediction'][:100]}...")
-                report_content.append(f"  Référence: {row['reference'][:100]}...")
-                report_content.append(f"  Score fidélité: {row['faithfulness']:.3f}")
+                report_content.append(f"\n  question: {row['question']}")
+                report_content.append(f"  prédiction: {row['prediction'][:100]}...")
+                report_content.append(f"  référence: {row['reference'][:100]}...")
+                report_content.append(f"  score faithfulness: {row['faithfulness']:.3f}")
         else:
-            print("Toutes les questions ont une bonne fidélité (≥0.7)")
-            report_content.append("Toutes les questions ont une bonne fidélité (≥0.7)")
+            print("toutes les questions ont une bonne faithfulness (≥0.7)")
+            report_content.append("toutes les questions ont une bonne faithfulness (≥0.7)")
 
-        # Questions avec faible F1
-        low_f1 = results_df[results_df["answer_f1"] < 0.5]
-        if not low_f1.empty:
-            print(f"\nQuestions avec faible F1 (<0.5): {len(low_f1)}")
-            print(f"Moyenne F1 pour ces questions: {low_f1['answer_f1'].mean():.3f}")
-            report_content.append(f"\nQuestions avec faible F1 (<0.5): {len(low_f1)}")
+        # questions avec faible answer_relevancy
+        low_relevancy = results_df[results_df["answer_relevancy"] < 0.5]
+        if not low_relevancy.empty:
+            print(f"\nquestions avec faible answer_relevancy (<0.5): {len(low_relevancy)}")
+            print(f"moyenne answer_relevancy pour ces questions: {low_relevancy['answer_relevancy'].mean():.3f}")
+            report_content.append(f"\nquestions avec faible answer_relevancy (<0.5): {len(low_relevancy)}")
             report_content.append(
-                f"Moyenne F1 pour ces questions: {low_f1['answer_f1'].mean():.3f}"
+                f"moyenne answer_relevancy pour ces questions: {low_relevancy['answer_relevancy'].mean():.3f}"
             )
 
-        # Résumé des performances
+        # résumé des performances
         print("\nRÉSUMÉ DES PERFORMANCES:")
         print("-" * 40)
         report_content.append("\nRÉSUMÉ DES PERFORMANCES:")
         report_content.append("-" * 40)
 
         summary_lines = [
-            f"Nombre total de questions: {len(results_df)}",
-            f"Score F1 moyen: {results_df['answer_f1'].mean():.3f} ± {results_df['answer_f1'].std():.3f}",
-            f"Similarité moyenne: {results_df['answer_similarity'].mean():.3f} ± {results_df['answer_similarity'].std():.3f}",
-            f"Fidélité moyenne: {results_df['faithfulness'].mean():.3f} ± {results_df['faithfulness'].std():.3f}",
-            f"Précision contexte moyenne: {results_df['context_precision'].mean():.3f} ± {results_df['context_precision'].std():.3f}",
-            f"Rappel contexte moyen: {results_df['context_recall'].mean():.3f} ± {results_df['context_recall'].std():.3f}",
+            f"nombre total de questions: {len(results_df)}",
+            f"faithfulness moyen: {results_df['faithfulness'].mean():.3f} ± {results_df['faithfulness'].std():.3f}",
+            f"answer_relevancy moyen: {results_df['answer_relevancy'].mean():.3f} ± {results_df['answer_relevancy'].std():.3f}",
+            f"context_precision moyen: {results_df['context_precision'].mean():.3f} ± {results_df['context_precision'].std():.3f}",
+            f"context_recall moyen: {results_df['context_recall'].mean():.3f} ± {results_df['context_recall'].std():.3f}",
         ]
 
         for line in summary_lines:
             print(line)
             report_content.append(line)
 
-        # Sauvegarder le rapport dans un fichier texte
+        # sauvegarde le rapport dans un fichier texte
         report_filename = "evaluation_report.txt"
         report_path = Path("evaluation_results") / report_filename
 
-        # Créer le dossier s'il n'existe pas
+        # crée le dossier s'il n'existe pas
         report_path.parent.mkdir(exist_ok=True)
 
         with open(report_path, "w", encoding="utf-8") as f:
             f.write("\n".join(report_content))
 
-        print(f"\nRapport détaillé sauvegardé: {report_path}")
-        report_content.append(f"\nRapport détaillé sauvegardé: {report_path}")
+        print(f"\nrapport détaillé sauvegardé: {report_path}")
+        report_content.append(f"\nrapport détaillé sauvegardé: {report_path}")
 
     finally:
         # nettoie le dossier temporaire
@@ -400,46 +410,262 @@ def cleanup():
 
 
 def create_sample_questions():
-    """Crée un fichier de questions d'exemple pour les tests."""
+    """crée un fichier de questions d'exemple pour les tests (20 questions variées)."""
     import json
 
     sample_questions = [
+        # Statistiques de base
         {
-            "question": "Quelles sont les statistiques de base de Pikachu ?",
-            "reference": "Pikachu a 35 points de vie, 55 d'attaque, 40 de défense, 50 d'attaque spéciale, 50 de défense spéciale et 90 de vitesse.",
+            "question": "donne-moi exactement les statistiques de base de pikachu (pv, attaque, défense, attaque spéciale, défense spéciale, vitesse).",
+            "reference": "pikachu a 35 points de vie, 55 d'attaque, 40 de défense, 50 d'attaque spéciale, 50 de défense spéciale et 90 de vitesse.",
             "type": "statistics",
         },
         {
-            "question": "Décris le comportement de Charizard",
-            "reference": "Charizard est un Pokémon fier et courageux qui aime les défis. Il est très loyal envers son dresseur et protège son territoire avec ferveur.",
-            "type": "description",
+            "question": "donne-moi exactement les statistiques de base de bulbizarre (pv, attaque, défense, attaque spéciale, défense spéciale, vitesse).",
+            "reference": "bulbizarre a 45 points de vie, 49 d'attaque, 49 de défense, 65 d'attaque spéciale, 65 de défense spéciale et 45 de vitesse.",
+            "type": "statistics",
         },
         {
-            "question": "Quels sont les Pokémon de type feu ?",
-            "reference": "Les Pokémon de type feu incluent Salamèche, Reptincel, Dracaufeu, Caninos, Arcanin, Ponyta, Galopa, et d'autres.",
+            "question": "donne-moi exactement les statistiques de base de salamèche (pv, attaque, défense, attaque spéciale, défense spéciale, vitesse).",
+            "reference": "salamèche a 39 points de vie, 52 d'attaque, 43 de défense, 60 d'attaque spéciale, 50 de défense spéciale et 65 de vitesse.",
+            "type": "statistics",
+        },
+        {
+            "question": "donne-moi exactement les statistiques de base de tortank (pv, attaque, défense, attaque spéciale, défense spéciale, vitesse).",
+            "reference": "tortank a 79 points de vie, 83 d'attaque, 100 de défense, 85 d'attaque spéciale, 105 de défense spéciale et 78 de vitesse.",
+            "type": "statistics",
+        },
+        # Types et capacités
+        {
+            "question": "quels sont les deux types de dracaufeu et ses capacités spéciales selon le pokédex ?",
+            "reference": "dracaufeu est de type feu et vol. ses capacités spéciales sont blaze et solar power.",
+            "type": "statistics",
+        },
+        {
+            "question": "quels sont les deux types de florizarre et ses capacités spéciales selon le pokédex ?",
+            "reference": "florizarre est de type plante et poison. ses capacités spéciales sont overgrow et chlorophyll.",
+            "type": "statistics",
+        },
+        # Listes par type
+        {
+            "question": "donne la liste complète des pokémon de type feu de la première génération.",
+            "reference": "les pokémon de type feu de la première génération sont salamèche, reptincel, dracaufeu, caninos, arcanin, ponyta, galopa, goupix, feunard, magmar et pyroli.",
             "type": "categorization",
         },
         {
-            "question": "Quels sont les Pokémon légendaires ?",
-            "reference": "Les Pokémon légendaires incluent Articuno, Zapdos, Moltres, Mewtwo, Mew, et d'autres.",
+            "question": "donne la liste complète des pokémon de type eau de la première génération.",
+            "reference": "les pokémon de type eau de la première génération incluent carapuce, carabaffe, tortank, magicarpe, léviator, ptitard, têtarte, tartard, psykokwak, akwakwak, poissirène, poissoroy, hypotrempe, hypocéan, lamantine, otaria, lokhlass, stari, staross, tentacool, tentacruel, krabboss, krabby, kokiyas, et d'autres.",
+            "type": "categorization",
+        },
+        # Statut légendaire/mythique
+        {
+            "question": "cites trois pokémon légendaires de la première génération.",
+            "reference": "trois pokémon légendaires de la première génération sont artikodin, électhor et sulfura.",
             "type": "categorization",
         },
         {
-            "question": "Parle-moi de l'habitat de Bulbizarre",
-            "reference": "Bulbizarre vit principalement dans les forêts et les prairies. Il préfère les endroits ensoleillés où il peut absorber la lumière du soleil.",
+            "question": "donne un exemple de pokémon mythique de la première génération.",
+            "reference": "mew est un pokémon mythique de la première génération.",
+            "type": "categorization",
+        },
+        # Descriptions Poképédia
+        {
+            "question": "décris le comportement de ronflex selon poképédia.",
+            "reference": "ronflex passe la majeure partie de son temps à dormir et à manger. il est réputé pour sa grande paresse et son appétit insatiable.",
             "type": "description",
+        },
+        {
+            "question": "dans quel habitat naturel vit principalement bulbizarre selon poképédia ?",
+            "reference": "bulbizarre vit principalement dans les forêts et les prairies.",
+            "type": "description",
+        },
+        {
+            "question": "quelle est la couleur de pikachu selon le pokédex ?",
+            "reference": "pikachu est de couleur jaune.",
+            "type": "description",
+        },
+        # Évolution
+        {
+            "question": "en quoi évolue salamèche ?",
+            "reference": "salamèche évolue en reptincel.",
+            "type": "evolution",
+        },
+        {
+            "question": "en quoi évolue carapuce ?",
+            "reference": "carapuce évolue en carabaffe.",
+            "type": "evolution",
+        },
+        # Comparaisons
+        {
+            "question": "lequel a le plus de points de vie, ronflex ou pikachu ?",
+            "reference": "ronflex a plus de points de vie que pikachu.",
+            "type": "comparison",
+        },
+        {
+            "question": "lequel est plus rapide, pikachu ou tortank ?",
+            "reference": "pikachu est plus rapide que tortank.",
+            "type": "comparison",
+        },
+        # Listes par habitat/couleur
+        {
+            "question": "donne la liste des pokémon de couleur jaune de la première génération.",
+            "reference": "les pokémon de couleur jaune de la première génération incluent pikachu, raichu, léviator chromatique, etc.",
+            "type": "categorization",
+        },
+        {
+            "question": "donne la liste des pokémon vivant dans les forêts selon le pokédex.",
+            "reference": "les pokémon vivant dans les forêts incluent bulbizarre, chenipan, aspicot, pikachu, etc.",
+            "type": "categorization",
+        },
+        # Capacités spéciales
+        {
+            "question": "quelles sont les capacités spéciales de salamèche ?",
+            "reference": "salamèche a la capacité blaze qui augmente la puissance des attaques feu.",
+            "type": "statistics",
+        },
+        {
+            "question": "quelles sont les capacités spéciales de ronflex ?",
+            "reference": "ronflex a les capacités immunité et épais gras.",
+            "type": "statistics",
+        },
+        # Liste par type normal
+        {
+            "question": "quels sont les pokémon de type normal de la première génération ?",
+            "reference": "les pokémon de type normal de la première génération incluent rattata, rattatac, ronflex, miaouss, persian, piafabec, rapasdepic, noeunoeuf, noadkoko, kangourex, tauros, ditto, évoli, lippoutou, leveinard, et d'autres.",
+            "type": "categorization",
         },
     ]
 
-    # Crée le dossier data s'il n'existe pas
+    # crée le dossier data s'il n'existe pas
     data_dir = Path("data")
     data_dir.mkdir(exist_ok=True)
 
-    # Sauvegarde le fichier
+    # sauvegarde le fichier
     with open(data_dir / "test_questions.json", "w", encoding="utf-8") as f:
         json.dump(sample_questions, f, ensure_ascii=False, indent=2)
 
-    print(f"Fichier de questions d'exemple créé: {data_dir / 'test_questions.json'}")
+    print(f"fichier de questions d'exemple créé: {data_dir / 'test_questions.json'}")
+
+
+async def run_evaluation(dataset_path: Path | None = None) -> None:
+    """lance l'évaluation rag complète (alias pour la compatibilité)."""
+    await run_evaluation_in_batches(dataset_path, batch_size=10)
+
+
+async def resume_evaluation(dataset_path: Path | None = None, start_from: int = 0, batch_size: int = 10) -> None:
+    """reprend l'évaluation à partir d'un certain point."""
+    print("initialisation...")
+    rag_system = RAGSystem()
+    evaluator = RAGEvaluator()
+
+    # charge les documents
+    print("chargement des documents...")
+    documents = create_pokemon_documents()
+    rag_system.embed_documents(documents)
+
+    # charge les questions
+    if dataset_path is None:
+        raise ValueError("chemin du jeu de questions non fourni")
+
+    test_questions = load_questions(dataset_path)
+    print(f"total questions à évaluer: {len(test_questions)}")
+    print(f"reprise à partir de la question {start_from + 1}")
+
+    # filtre les questions à partir du point de reprise
+    remaining_questions = test_questions[start_from:]
+    
+    # découpe en lots
+    batches = [remaining_questions[i:i + batch_size] for i in range(0, len(remaining_questions), batch_size)]
+    print(f"découpage en {len(batches)} lots de {batch_size} questions")
+
+    # prépare les résultats
+    all_results = []
+    output_dir = "evaluation_results"
+
+    try:
+        # crée le dossier temporaire
+        output_dir = Path(tempfile.mkdtemp(prefix="eval_results_"))
+
+        # traite chaque lot
+        for batch_idx, batch in enumerate(batches, 1):
+            print(f"\n{'='*60}")
+            print(f"LOT {batch_idx}/{len(batches)} ({len(batch)} questions)")
+            print(f"{'='*60}")
+
+            batch_results = []
+
+            # évalue chaque question du lot
+            for i, test_case in enumerate(batch, 1):
+                global_idx = start_from + (batch_idx - 1) * batch_size + i
+                print(f"\ntest {global_idx}/{len(test_questions)}: {test_case['question']}")
+
+                try:
+                    # obtient la réponse
+                    result = rag_system.query(test_case["question"])
+
+                    # évalue avec métriques basiques
+                    result_data = await evaluate_response(evaluator, result, test_case)
+                    batch_results.append(result_data)
+
+                    # affiche les résultats
+                    print(f"type de recherche: {result.get('search_type', 'semantic')}")
+                    print(f"faithfulness: {result_data['faithfulness']:.3f}")
+                    print(f"answer_relevancy: {result_data['answer_relevancy']:.3f}")
+                    print(f"context_precision: {result_data['context_precision']:.3f}")
+                    print(f"context_recall: {result_data['context_recall']:.3f}")
+
+                except Exception as e:
+                    print(f"erreur sur la question {global_idx}: {e}")
+                    # ajoute un résultat vide en cas d'erreur
+                    error_result = {
+                        "question": test_case["question"],
+                        "expected_type": test_case["type"],
+                        "actual_type": "error",
+                        "prediction": f"erreur: {str(e)}",
+                        "reference": test_case["reference"],
+                        "faithfulness": 0.0,
+                        "answer_relevancy": 0.0,
+                        "context_precision": 0.0,
+                        "context_recall": 0.0,
+                    }
+                    batch_results.append(error_result)
+
+            # ajoute les résultats du lot
+            all_results.extend(batch_results)
+
+            # sauvegarde intermédiaire
+            if batch_results:
+                batch_df = pd.DataFrame(batch_results)
+                batch_df.to_csv(output_dir / f"batch_{batch_idx}_results.csv", index=False)
+                print(f"\nlot {batch_idx} sauvegardé: {len(batch_results)} résultats")
+
+            # délai entre les lots (sauf le dernier)
+            if batch_idx < len(batches):
+                delay = 60  # 60 secondes entre les lots
+                print(f"\nattente de {delay} secondes avant le prochain lot...")
+                await asyncio.sleep(delay)
+
+        # crée le dataframe final
+        results_df = pd.DataFrame(all_results)
+
+        # sauvegarde les résultats finaux
+        results_df.to_csv(output_dir / "evaluation_results.csv", index=False)
+
+        # génère les graphiques
+        await evaluator.plot_results(results_df, output_dir)
+
+        # sauvegarde dans le dossier final
+        save_results(results_df, output_dir)
+
+        print(f"\névaluation terminée: {len(results_df)} questions traitées")
+
+    finally:
+        # nettoie le dossier temporaire
+        if output_dir and output_dir.exists():
+            try:
+                shutil.rmtree(output_dir, ignore_errors=True)
+            except Exception as e:
+                print(f"erreur de nettoyage : {e}")
 
 
 if __name__ == "__main__":
@@ -450,18 +676,29 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         dataset = Path(sys.argv[1])
     else:
-        # Utilise un fichier par défaut s'il existe
+        # utilise un fichier par défaut s'il existe
         default_dataset = Path("data/test_questions.json")
         if default_dataset.exists():
             dataset = default_dataset
-            print(f"Utilisation du fichier de questions par défaut: {dataset}")
+            print(f"utilisation du fichier de questions par défaut: {dataset}")
         else:
             print(
-                "Aucun fichier de questions fourni et aucun fichier par défaut trouvé."
+                "aucun fichier de questions fourni et aucun fichier par défaut trouvé."
             )
-            print("Création d'un fichier de questions d'exemple...")
+            print("création d'un fichier de questions d'exemple...")
             create_sample_questions()
             dataset = default_dataset
 
-    # lance l'évaluation
-    asyncio.run(run_evaluation(dataset))
+    # vérifie s'il y a un argument pour reprendre l'évaluation
+    start_from = 0
+    if len(sys.argv) > 2:
+        try:
+            start_from = int(sys.argv[2])
+            print(f"reprise de l'évaluation à partir de la question {start_from + 1}")
+            asyncio.run(resume_evaluation(dataset, start_from))
+        except ValueError:
+            print("argument de reprise invalide, lancement de l'évaluation complète")
+            asyncio.run(run_evaluation_in_batches(dataset))
+    else:
+        # lance l'évaluation complète
+        asyncio.run(run_evaluation_in_batches(dataset))

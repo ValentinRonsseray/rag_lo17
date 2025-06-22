@@ -19,6 +19,11 @@ matplotlib>=3.8.0
 scikit-learn>=1.4.0
 rapidfuzz>=3.0.0
 
+# RAGAS for RAG evaluation
+ragas>=0.1.0
+datasets>=2.16.0
+evaluate>=0.4.0
+
 # Environment and utilities
 python-dotenv>=1.0.0
 requests>=2.31.0

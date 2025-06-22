@@ -1,139 +1,160 @@
 ============================================================
 RAPPORT D'ÉVALUATION RAG POKÉMON
 ============================================================
-Date: 2025-06-20 00:21:58
-Nombre total de questions: 5
+date: 2025-06-22 15:52:11
+nombre total de questions: 12
+nombre de lots: 2
 
 STATISTIQUES GLOBALES:
 ----------------------------------------
-        answer_f1  answer_similarity  ...  context_recall  faithfulness
-mean        0.198              0.412  ...           0.512         0.750
-std         0.099              0.118  ...           0.144         0.145
-min         0.064              0.211  ...           0.292         0.571
-max         0.295              0.513  ...           0.667         0.923
-median      0.229              0.443  ...           0.562         0.703
-
-[5 rows x 5 columns]
+        faithfulness  answer_relevancy  context_precision  context_recall
+mean           0.644             0.397              0.799           0.101
+std            0.353             0.215              0.376           0.153
+min            0.000             0.136              0.000           0.000
+max            1.000             0.938              1.000           0.562
+median         0.739             0.356              0.952           0.050
 
 ANALYSE PAR TYPE DE QUESTION:
 ----------------------------------------
-               answer_f1        ... faithfulness      
-                    mean count  ...         mean count
-expected_type                   ...                   
-categorization     0.169     2  ...        0.626     2
-description        0.178     2  ...        0.897     2
-statistics         0.295     1  ...        0.703     1
+               faithfulness       answer_relevancy  ... context_precision context_recall      
+                       mean count             mean  ...             count           mean count
+expected_type                                       ...                                       
+categorization        0.250     2            0.402  ...                 2          0.048     2
+comparison            0.000     1            0.330  ...                 1          0.000     1
+description           0.642     2            0.213  ...                 2          0.109     2
+evolution             1.000     2            0.249  ...                 2          0.048     2
+statistics            0.788     5            0.541  ...                 5          0.160     5
 
-[3 rows x 10 columns]
+[5 rows x 8 columns]
 
 ANALYSE PAR TYPE DE RECHERCHE:
 ----------------------------------------
-            answer_f1       answer_similarity  ... context_recall faithfulness      
-                 mean count              mean  ...          count         mean count
-actual_type                                    ...                                  
-semantic        0.198     5             0.412  ...              5         0.75     5
+            faithfulness       answer_relevancy  ... context_precision context_recall      
+                    mean count             mean  ...             count           mean count
+actual_type                                      ...                                       
+semantic           0.644    12            0.397  ...                12          0.101    12
 
-[1 rows x 10 columns]
+[1 rows x 8 columns]
 
 DISTRIBUTION DES SCORES:
 ----------------------------------------
 
-ANSWER_F1:
-  Excellent (≥0.9): 0 questions (0.0%)
-  Bon (0.7-0.9): 0 questions (0.0%)
-  Moyen (0.5-0.7): 0 questions (0.0%)
-  Faible (<0.5): 5 questions (100.0%)
+FAITHFULNESS:
+  excellent (≥0.9): 3 questions (25.0%)
+  bon (0.7-0.9): 4 questions (33.3%)
+  moyen (0.5-0.7): 3 questions (25.0%)
+  faible (<0.5): 2 questions (16.7%)
 
-ANSWER_SIMILARITY:
-  Excellent (≥0.9): 0 questions (0.0%)
-  Bon (0.7-0.9): 0 questions (0.0%)
-  Moyen (0.5-0.7): 1 questions (20.0%)
-  Faible (<0.5): 4 questions (80.0%)
+ANSWER_RELEVANCY:
+  excellent (≥0.9): 1 questions (8.3%)
+  bon (0.7-0.9): 0 questions (0.0%)
+  moyen (0.5-0.7): 1 questions (8.3%)
+  faible (<0.5): 10 questions (83.3%)
 
 CONTEXT_PRECISION:
-  Excellent (≥0.9): 0 questions (0.0%)
-  Bon (0.7-0.9): 0 questions (0.0%)
-  Moyen (0.5-0.7): 0 questions (0.0%)
-  Faible (<0.5): 5 questions (100.0%)
+  excellent (≥0.9): 9 questions (75.0%)
+  bon (0.7-0.9): 1 questions (8.3%)
+  moyen (0.5-0.7): 0 questions (0.0%)
+  faible (<0.5): 2 questions (16.7%)
 
 CONTEXT_RECALL:
-  Excellent (≥0.9): 0 questions (0.0%)
-  Bon (0.7-0.9): 0 questions (0.0%)
-  Moyen (0.5-0.7): 3 questions (60.0%)
-  Faible (<0.5): 2 questions (40.0%)
-
-FAITHFULNESS:
-  Excellent (≥0.9): 1 questions (20.0%)
-  Bon (0.7-0.9): 2 questions (40.0%)
-  Moyen (0.5-0.7): 2 questions (40.0%)
-  Faible (<0.5): 0 questions (0.0%)
+  excellent (≥0.9): 0 questions (0.0%)
+  bon (0.7-0.9): 0 questions (0.0%)
+  moyen (0.5-0.7): 1 questions (8.3%)
+  faible (<0.5): 11 questions (91.7%)
 
 CORRÉLATIONS ENTRE MÉTRIQUES:
 ----------------------------------------
-                   answer_f1  ...  faithfulness
-answer_f1              1.000  ...        -0.216
-answer_similarity      0.717  ...         0.350
-context_precision     -0.364  ...         0.436
-context_recall         0.070  ...        -0.716
-faithfulness          -0.216  ...         1.000
-
-[5 rows x 5 columns]
+                   faithfulness  answer_relevancy  context_precision  context_recall
+faithfulness              1.000             0.206              0.862           0.229
+answer_relevancy          0.206             1.000              0.020          -0.107
+context_precision         0.862             0.020              1.000           0.345
+context_recall            0.229            -0.107              0.345           1.000
 
 TOP 3 QUESTIONS PAR MÉTRIQUE:
 ----------------------------------------
 
-ANSWER_F1:
-  1. Quelles sont les statistiques de base de Pikachu ?... (score: 0.295)
-  2. Quels sont les Pokémon de type feu ?... (score: 0.275)
-  3. Parle-moi de l'habitat de Bulbizarre... (score: 0.229)
-
-ANSWER_SIMILARITY:
-  1. Parle-moi de l'habitat de Bulbizarre... (score: 0.513)
-  2. Quels sont les Pokémon de type feu ?... (score: 0.472)
-  3. Décris le comportement de Charizard... (score: 0.443)
-
 FAITHFULNESS:
-  1. Parle-moi de l'habitat de Bulbizarre... (score: 0.923)
-  2. Décris le comportement de Charizard... (score: 0.872)
-  3. Quelles sont les statistiques de base de Pikachu ?... (score: 0.703)
+  1. quels sont les deux types de dracaufeu et ses capacités spéc... (score: 1.000)
+  2. en quoi évolue salamèche ?... (score: 1.000)
+  3. en quoi évolue carapuce ?... (score: 1.000)
+
+ANSWER_RELEVANCY:
+  1. quels sont les deux types de dracaufeu et ses capacités spéc... (score: 0.938)
+  2. quels sont les deux types de florizarre et ses capacités spé... (score: 0.642)
+  3. donne-moi exactement les statistiques de base de bulbizarre ... (score: 0.488)
+
+CONTEXT_PRECISION:
+  1. donne-moi exactement les statistiques de base de pikachu (pv... (score: 1.000)
+  2. donne-moi exactement les statistiques de base de bulbizarre ... (score: 1.000)
+  3. en quoi évolue salamèche ?... (score: 1.000)
+
+CONTEXT_RECALL:
+  1. donne-moi exactement les statistiques de base de pikachu (pv... (score: 0.562)
+  2. décris le comportement de ronflex selon poképédia.... (score: 0.167)
+  3. quelles sont les capacités spéciales de ronflex ?... (score: 0.125)
 
 QUESTIONS AVEC LES PLUS MAUVAIS SCORES:
 ----------------------------------------
 
-ANSWER_F1 (plus bas):
-  1. Quels sont les Pokémon légendaires ?... (score: 0.064)
-  2. Décris le comportement de Charizard... (score: 0.127)
-  3. Parle-moi de l'habitat de Bulbizarre... (score: 0.229)
-
 FAITHFULNESS (plus bas):
-  1. Quels sont les Pokémon de type feu ?... (score: 0.571)
-  2. Quels sont les Pokémon légendaires ?... (score: 0.681)
-  3. Quelles sont les statistiques de base de Pikachu ?... (score: 0.703)
+  1. cites trois pokémon légendaires de la première génération.... (score: 0.000)
+  2. lequel a le plus de points de vie, ronflex ou pikachu ?... (score: 0.000)
+  3. donne la liste complète des pokémon de type feu de la premiè... (score: 0.500)
+
+ANSWER_RELEVANCY (plus bas):
+  1. quelle est la couleur de pikachu selon le pokédex ?... (score: 0.136)
+  2. en quoi évolue carapuce ?... (score: 0.226)
+  3. quelles sont les capacités spéciales de ronflex ?... (score: 0.256)
+
+CONTEXT_PRECISION (plus bas):
+  1. cites trois pokémon légendaires de la première génération.... (score: 0.000)
+  2. lequel a le plus de points de vie, ronflex ou pikachu ?... (score: 0.000)
+  3. quels sont les deux types de florizarre et ses capacités spé... (score: 0.857)
+
+CONTEXT_RECALL (plus bas):
+  1. cites trois pokémon légendaires de la première génération.... (score: 0.000)
+  2. lequel a le plus de points de vie, ronflex ou pikachu ?... (score: 0.000)
+  3. quels sont les deux types de florizarre et ses capacités spé... (score: 0.026)
 
 ANALYSE DÉTAILLÉE DES ERREURS:
 ----------------------------------------
 
-Questions avec faible fidélité (<0.7): 2
-Moyenne fidélité pour ces questions: 0.626
+questions avec faible faithfulness (<0.7): 5
+moyenne faithfulness pour ces questions: 0.307
 
-  Question: Quels sont les Pokémon de type feu ?
-  Prédiction: Les Pokémon de type Feu mentionnés dans le contexte sont Sulfura et Ponyta. Sulfura est un oiseau lé...
-  Référence: Les Pokémon de type feu incluent Salamèche, Reptincel, Dracaufeu, Caninos, Arcanin, Ponyta, Galopa, ...
-  Score fidélité: 0.571
+  question: donne la liste complète des pokémon de type feu de la première génération.
+  prédiction: Les Pokémon de type Feu de la première génération mentionnés dans le contexte sont Ponyta et Magmar....
+  référence: les pokémon de type feu de la première génération sont salamèche, reptincel, dracaufeu, caninos, arc...
+  score faithfulness: 0.500
 
-  Question: Quels sont les Pokémon légendaires ?
-  Prédiction: Un Pokémon légendaire est un Pokémon particulier, associé généralement à un mythe concernant la créa...
-  Référence: Les Pokémon légendaires incluent Articuno, Zapdos, Moltres, Mewtwo, Mew, et d'autres....
-  Score fidélité: 0.681
+  question: cites trois pokémon légendaires de la première génération.
+  prédiction: i don't have enough information to answer this question accurately....
+  référence: trois pokémon légendaires de la première génération sont artikodin, électhor et sulfura....
+  score faithfulness: 0.000
 
-Questions avec faible F1 (<0.5): 5
-Moyenne F1 pour ces questions: 0.198
+  question: décris le comportement de ronflex selon poképédia.
+  prédiction: Selon Poképédia, Ronflex est un Pokémon plutôt lourd qui passe son temps à dormir et ne se réveille ...
+  référence: ronflex passe la majeure partie de son temps à dormir et à manger. il est réputé pour sa grande pare...
+  score faithfulness: 0.533
+
+  question: lequel a le plus de points de vie, ronflex ou pikachu ?
+  prédiction: i don't have enough information to answer this question accurately....
+  référence: ronflex a plus de points de vie que pikachu....
+  score faithfulness: 0.000
+
+  question: quelles sont les capacités spéciales de ronflex ?
+  prédiction: Ronflex possède les capacités spéciales suivantes : Immunity, Thick Fat et Gluttony. De plus, certai...
+  référence: ronflex a les capacités immunité et épais gras....
+  score faithfulness: 0.500
+
+questions avec faible answer_relevancy (<0.5): 10
+moyenne answer_relevancy pour ces questions: 0.318
 
 RÉSUMÉ DES PERFORMANCES:
 ----------------------------------------
-Nombre total de questions: 5
-Score F1 moyen: 0.198 ± 0.099
-Similarité moyenne: 0.412 ± 0.118
-Fidélité moyenne: 0.750 ± 0.145
-Précision contexte moyenne: 0.019 ± 0.027
-Rappel contexte moyen: 0.512 ± 0.144
+nombre total de questions: 12
+faithfulness moyen: 0.644 ± 0.353
+answer_relevancy moyen: 0.397 ± 0.215
+context_precision moyen: 0.799 ± 0.376
+context_recall moyen: 0.101 ± 0.153

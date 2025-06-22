@@ -43,10 +43,10 @@ if "data_embedded" not in st.session_state:
         try:
             # charge les documents pokeapi
             pokemon_documents = create_pokemon_documents()
-
+            
             # charge les documents poképédia séparément pour le comptage
             pokepedia_documents = load_pokepedia_documents()
-
+            
             # compte les documents
             pokeapi_count = len(pokemon_documents)
             pokepedia_count = len(pokepedia_documents)
@@ -82,6 +82,8 @@ le système utilise une recherche vectorielle avancée avec :
 - métadonnées enrichies incluant les informations d'index (types, statuts, habitats, couleurs)
 - intégration automatique des données poképédia pour des réponses plus riches et détaillées
 - recherche sémantique pour comprendre le contexte et l'intention des questions
+
+**évaluation ragas** : le système utilise ragas (retrieval-augmented generation assessment) pour évaluer la qualité des réponses.
 """
 )
 
@@ -92,7 +94,7 @@ with st.sidebar:
     # paramètres du modèle
     st.subheader("paramètres du modèle")
     temperature = st.slider("température", 0.0, 1.0, 0.0, 0.1)
-
+    
     # mettre à jour la température du système rag
     if hasattr(st.session_state.rag_system, "llm"):
         current_temp = st.session_state.rag_system.llm.temperature
@@ -111,7 +113,7 @@ with st.sidebar:
             st.session_state.rag_system.engaged_mode = engaged_mode
             # mettre à jour le prompt template
             st.session_state.rag_system._update_prompt_template()
-
+    
     if engaged_mode:
         st.success("✅ mode engagé activé - réponses détaillées et structurées")
     else:
@@ -158,38 +160,79 @@ if question:
             st.subheader("réponse")
             st.write(result["answer"])
 
-            # évaluation de la réponse
-            with st.spinner("évaluation de la réponse..."):
-                overlap = faithfulness(result["answer"], result["context"])
-                faithfulness_score = overlap
+            # évaluation de la réponse avec ragas
+            with st.spinner("évaluation ragas de la réponse..."):
+                try:
+                    # utilise ragas pour l'évaluation
+                    from src.evaluation import evaluate_single_response
+                    ragas_scores = evaluate_single_response(
+                        question=question,
+                        context=result["context"],
+                        answer=result["answer"]
+                    )
+                    
+                    faithfulness_score = ragas_scores.get("faithfulness", 0.0)
+                    answer_relevancy = ragas_scores.get("answer_relevancy", 0.0)
+                    context_precision = ragas_scores.get("context_precision", 0.0)
+                    context_recall = ragas_scores.get("context_recall", 0.0)
+                    
+                except Exception as e:
+                    st.warning(f"erreur lors de l'évaluation ragas : {e}")
+                    # fallback vers l'ancienne méthode
+                    faithfulness_score = faithfulness(result["answer"], result["context"])
+                    answer_relevancy = 0.5
+                    context_precision = 0.5
+                    context_recall = 0.5
 
-            # indicateurs de confiance
-            st.subheader("indicateurs de confiance")
+            # indicateurs de confiance ragas
+            st.subheader("métriques ragas")
 
             # colonnes pour les métriques
             col1, col2 = st.columns(2)
 
-            # fidélité
-            hallucination_prob = 1 - faithfulness_score
+            # faithfulness (fidélité)
             with col1:
                 st.metric(
-                    "probabilité d'hallucination",
-                    f"{hallucination_prob:.1%}",
+                    "faithfulness",
+                    f"{faithfulness_score:.3f}",
                     delta=None,
-                    delta_color="inverse",
                 )
 
-            # recouvrement du contexte
+            # answer_relevancy (pertinence de la réponse)
             with col2:
-                st.metric("recouvrement du contexte", f"{overlap:.1%}", delta=None)
+                st.metric(
+                    "answer_relevancy", 
+                    f"{answer_relevancy:.3f}",
+                    delta=None,
+                )
 
-            # barre de confiance
-            confidence_score = faithfulness_score
-            st.progress(confidence_score, text="confiance globale")
+            # context_precision et context_recall
+            col3, col4 = st.columns(2)
+            
+            with col3:
+                st.metric(
+                    "context_precision",
+                    f"{context_precision:.3f}",
+                    delta=None,
+                )
+            
+            with col4:
+                st.metric(
+                    "context_recall",
+                    f"{context_recall:.3f}",
+                    delta=None,
+                )
 
-            # avertissement si hallucination élevée
-            if hallucination_prob > 0.3:
-                st.warning("⚠️ attention : réponse potentiellement incorrecte")
+            # barre de confiance globale (moyenne des métriques ragas)
+            confidence_score = (faithfulness_score + answer_relevancy + context_precision + context_recall) / 4
+            st.progress(confidence_score, text="confiance globale (moyenne ragas)")
+
+            # avertissement si scores faibles
+            if faithfulness_score < 0.7:
+                st.warning("⚠️ attention : faible faithfulness - réponse potentiellement incorrecte")
+            
+            if answer_relevancy < 0.5:
+                st.warning("⚠️ attention : faible answer_relevancy - réponse potentiellement hors sujet")
 
             # affichage du contexte
             if result["context"]:

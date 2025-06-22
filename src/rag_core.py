@@ -262,7 +262,11 @@ class RAGSystem:
             shutil.rmtree(self.persist_directory, ignore_errors=True)
 
     def __del__(self):
-        self.cleanup()
+        try:
+            self.cleanup()
+        except:
+            # ignore les erreurs lors de la fermeture de python
+            pass
 
     def _update_prompt_template(self):
         """met à jour le prompt template selon le mode engagé."""

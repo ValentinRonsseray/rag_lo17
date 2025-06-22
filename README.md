@@ -2,6 +2,10 @@
 
 Un système de questions-réponses basé sur RAG (Retrieval-Augmented Generation) spécialisé dans l'univers Pokémon, utilisant LangChain, le modèle Gemini de Google et ChromaDB.
 
+## Rapport du projet
+
+Le rapport est directement disponible à l'emplacement `resources/Rapport Projet Pokemon LO17.pdf`.
+
 ## Fonctionnalités
 
 - **Sources de données multiples** : PokeAPI (statistiques, types, capacités) + Poképédia (descriptions, biologie, comportement)
@@ -76,6 +80,8 @@ Le script vérifie automatiquement la présence des données et les télécharge
 rag-lo17/
 ├── app.py                      # Application Streamlit
 ├── main.py                     # Script principal de lancement
+├── resources/                  # Dossier contenant le rapport du projet
+│   ├── Rapport Projet Pokemon LO17.pdf # Rapport du projet
 ├── src/
 │   ├── rag_core.py            # Système RAG principal
 │   ├── evaluation.py          # Métriques d'évaluation simplifiées

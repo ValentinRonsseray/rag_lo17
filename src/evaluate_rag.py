@@ -1,3 +1,8 @@
+"""
+python evaluate_rag.py pour lancer l'évaluation en mode normal
+python evaluate_rag.py --engaged pour lancer l'évaluation en mode engagé
+python evaluate_rag.py --help pour afficher l'aide et les options
+"""
 import asyncio
 import atexit
 import shutil
@@ -44,7 +49,7 @@ async def evaluate_response(
     }
 
 
-def save_results(results_df: pd.DataFrame, output_dir: Path):
+def save_results(results_df: pd.DataFrame, output_dir: Path, engaged_mode: bool = False):
     """sauvegarde les résultats"""
     final_dir = Path("evaluation_results")
     try:
@@ -55,18 +60,25 @@ def save_results(results_df: pd.DataFrame, output_dir: Path):
         # crée le dossier
         final_dir.mkdir(exist_ok=True)
 
-        # copie les fichiers
+        # copie les fichiers avec suffixe si mode engagé
         for file in output_dir.glob("*"):
             if file.is_file():
-                shutil.copy2(file, final_dir / file.name)
+                if engaged_mode and not file.name.startswith("evaluation_report"):
+                    # ajoute le suffixe _engaged aux fichiers de résultats
+                    new_name = file.stem + "_engaged" + file.suffix
+                    shutil.copy2(file, final_dir / new_name)
+                else:
+                    shutil.copy2(file, final_dir / file.name)
     except Exception as e:
         print(f"erreur de sauvegarde : {e}")
 
 
-async def run_evaluation_in_batches(dataset_path: Path | None = None, batch_size: int = 10) -> None:
+async def run_evaluation_in_batches(dataset_path: Path | None = None, batch_size: int = 10, engaged_mode: bool = False) -> None:
     """lance l'évaluation rag par lots pour éviter les limites de quota."""
     print("initialisation...")
-    rag_system = RAGSystem()
+    print(f"mode engagé: {'activé' if engaged_mode else 'désactivé'}")
+    
+    rag_system = RAGSystem(engaged_mode=engaged_mode)
     evaluator = RAGEvaluator()
 
     # charge les documents
@@ -159,10 +171,10 @@ async def run_evaluation_in_batches(dataset_path: Path | None = None, batch_size
         results_df.to_csv(output_dir / "evaluation_results.csv", index=False)
 
         # génère les graphiques
-        await evaluator.plot_results(results_df, output_dir)
+        await evaluator.plot_results(results_df, output_dir, engaged_mode)
 
         # sauvegarde dans le dossier final
-        save_results(results_df, output_dir)
+        save_results(results_df, output_dir, engaged_mode)
 
         # analyse des résultats
         print("\n" + "=" * 60)
@@ -175,6 +187,7 @@ async def run_evaluation_in_batches(dataset_path: Path | None = None, batch_size
         report_content.append("RAPPORT D'ÉVALUATION RAG POKÉMON")
         report_content.append("=" * 60)
         report_content.append(f"date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        report_content.append(f"mode engagé: {'activé' if engaged_mode else 'désactivé'}")
         report_content.append(f"nombre total de questions: {len(results_df)}")
         report_content.append(f"nombre de lots: {len(batches)}")
         report_content.append("")
@@ -365,6 +378,7 @@ async def run_evaluation_in_batches(dataset_path: Path | None = None, batch_size
         report_content.append("-" * 40)
 
         summary_lines = [
+            f"mode engagé: {'activé' if engaged_mode else 'désactivé'}",
             f"nombre total de questions: {len(results_df)}",
             f"faithfulness moyen: {results_df['faithfulness'].mean():.3f} ± {results_df['faithfulness'].std():.3f}",
             f"answer_relevancy moyen: {results_df['answer_relevancy'].mean():.3f} ± {results_df['answer_relevancy'].std():.3f}",
@@ -377,7 +391,8 @@ async def run_evaluation_in_batches(dataset_path: Path | None = None, batch_size
             report_content.append(line)
 
         # sauvegarde le rapport dans un fichier texte
-        report_filename = "evaluation_report.txt"
+        mode_suffix = "_engaged" if engaged_mode else ""
+        report_filename = f"evaluation_report{mode_suffix}.txt"
         report_path = Path("evaluation_results") / report_filename
 
         # crée le dossier s'il n'existe pas
@@ -547,15 +562,17 @@ def create_sample_questions():
     print(f"fichier de questions d'exemple créé: {data_dir / 'test_questions.json'}")
 
 
-async def run_evaluation(dataset_path: Path | None = None) -> None:
+async def run_evaluation(dataset_path: Path | None = None, engaged_mode: bool = False) -> None:
     """lance l'évaluation rag complète (alias pour la compatibilité)."""
-    await run_evaluation_in_batches(dataset_path, batch_size=10)
+    await run_evaluation_in_batches(dataset_path, batch_size=10, engaged_mode=engaged_mode)
 
 
-async def resume_evaluation(dataset_path: Path | None = None, start_from: int = 0, batch_size: int = 10) -> None:
+async def resume_evaluation(dataset_path: Path | None = None, start_from: int = 0, batch_size: int = 10, engaged_mode: bool = False) -> None:
     """reprend l'évaluation à partir d'un certain point."""
     print("initialisation...")
-    rag_system = RAGSystem()
+    print(f"mode engagé: {'activé' if engaged_mode else 'désactivé'}")
+    
+    rag_system = RAGSystem(engaged_mode=engaged_mode)
     evaluator = RAGEvaluator()
 
     # charge les documents
@@ -652,10 +669,10 @@ async def resume_evaluation(dataset_path: Path | None = None, start_from: int = 
         results_df.to_csv(output_dir / "evaluation_results.csv", index=False)
 
         # génère les graphiques
-        await evaluator.plot_results(results_df, output_dir)
+        await evaluator.plot_results(results_df, output_dir, engaged_mode)
 
         # sauvegarde dans le dossier final
-        save_results(results_df, output_dir)
+        save_results(results_df, output_dir, engaged_mode)
 
         print(f"\névaluation terminée: {len(results_df)} questions traitées")
 
@@ -671,6 +688,40 @@ async def resume_evaluation(dataset_path: Path | None = None, start_from: int = 
 if __name__ == "__main__":
     # enregistre la fonction de nettoyage
     atexit.register(cleanup)
+
+    # affiche l'aide si demandé
+    if "--help" in sys.argv or "-h" in sys.argv:
+        print("""
+ÉVALUATION RAG POKÉMON
+======================
+
+Usage:
+  python src/evaluate_rag.py [fichier_questions] [question_debut] [options]
+
+Arguments:
+  fichier_questions    Chemin vers le fichier JSON contenant les questions de test
+                       (défaut: data/test_questions.json)
+  question_debut       Numéro de la question à partir de laquelle reprendre l'évaluation
+                       (optionnel, pour reprendre une évaluation interrompue)
+
+Options:
+  --engaged            Active le mode engagé pour des réponses plus détaillées
+  --help, -h           Affiche cette aide
+
+Exemples:
+  python src/evaluate_rag.py                           # Évaluation normale avec fichier par défaut
+  python src/evaluate_rag.py data/test_questions.json  # Évaluation avec fichier spécifique
+  python src/evaluate_rag.py --engaged                 # Évaluation en mode engagé
+  python src/evaluate_rag.py data/test_questions.json 5 --engaged  # Reprendre à la question 5 en mode engagé
+
+Le mode engagé utilise des prompts plus détaillés et récupère plus de contexte pour des réponses plus complètes.
+""")
+        sys.exit(0)
+
+    # parse les arguments
+    engaged_mode = "--engaged" in sys.argv
+    if engaged_mode:
+        sys.argv.remove("--engaged")  # retire l'argument pour ne pas interférer avec les autres
 
     # chemin du jeu de questions
     if len(sys.argv) > 1:
@@ -695,10 +746,10 @@ if __name__ == "__main__":
         try:
             start_from = int(sys.argv[2])
             print(f"reprise de l'évaluation à partir de la question {start_from + 1}")
-            asyncio.run(resume_evaluation(dataset, start_from))
+            asyncio.run(resume_evaluation(dataset, start_from, engaged_mode=engaged_mode))
         except ValueError:
             print("argument de reprise invalide, lancement de l'évaluation complète")
-            asyncio.run(run_evaluation_in_batches(dataset))
+            asyncio.run(run_evaluation_in_batches(dataset, engaged_mode=engaged_mode))
     else:
         # lance l'évaluation complète
-        asyncio.run(run_evaluation_in_batches(dataset))
+        asyncio.run(run_evaluation_in_batches(dataset, engaged_mode=engaged_mode))

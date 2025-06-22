@@ -196,7 +196,7 @@ class RAGEvaluator:
         
         return pd.DataFrame(results)
 
-    async def plot_results(self, results_df: pd.DataFrame, output_dir: Path) -> None:
+    async def plot_results(self, results_df: pd.DataFrame, output_dir: Path, engaged_mode: bool = False) -> None:
         """crée des visualisations pour les résultats."""
         import matplotlib.pyplot as plt
         
@@ -239,11 +239,19 @@ class RAGEvaluator:
             axes[idx].axis("off")
         
         plt.tight_layout()
-        plt.savefig(output_dir / "evaluation_metrics.png", dpi=300, bbox_inches='tight')
+        
+        # ajoute le suffixe si mode engagé
+        if engaged_mode:
+            plt.savefig(output_dir / "evaluation_metrics_engaged.png", dpi=300, bbox_inches='tight')
+        else:
+            plt.savefig(output_dir / "evaluation_metrics.png", dpi=300, bbox_inches='tight')
         plt.close(fig)
         
-        # sauvegarde les données
-        results_df.to_csv(output_dir / "eval_metrics.csv", index=False)
+        # sauvegarde les données avec suffixe si mode engagé
+        if engaged_mode:
+            results_df.to_csv(output_dir / "eval_metrics_engaged.csv", index=False)
+        else:
+            results_df.to_csv(output_dir / "eval_metrics.csv", index=False)
         
         # affiche le résumé
         print("\nrésumé de l'évaluation :")

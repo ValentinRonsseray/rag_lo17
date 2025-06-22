@@ -1,29 +1,30 @@
 ============================================================
 RAPPORT D'ÉVALUATION RAG POKÉMON
 ============================================================
-date: 2025-06-22 15:52:11
+date: 2025-06-22 16:16:17
+mode engagé: désactivé
 nombre total de questions: 12
 nombre de lots: 2
 
 STATISTIQUES GLOBALES:
 ----------------------------------------
         faithfulness  answer_relevancy  context_precision  context_recall
-mean           0.644             0.397              0.799           0.101
-std            0.353             0.215              0.376           0.153
+mean           0.644             0.404              0.796           0.098
+std            0.353             0.213              0.375           0.153
 min            0.000             0.136              0.000           0.000
 max            1.000             0.938              1.000           0.562
-median         0.739             0.356              0.952           0.050
+median         0.739             0.378              0.952           0.050
 
 ANALYSE PAR TYPE DE QUESTION:
 ----------------------------------------
-               faithfulness       answer_relevancy  ... context_precision context_recall      
-                       mean count             mean  ...             count           mean count
-expected_type                                       ...                                       
-categorization        0.250     2            0.402  ...                 2          0.048     2
-comparison            0.000     1            0.330  ...                 1          0.000     1
-description           0.642     2            0.213  ...                 2          0.109     2
-evolution             1.000     2            0.249  ...                 2          0.048     2
-statistics            0.788     5            0.541  ...                 5          0.160     5
+               faithfulness        ... context_recall      
+                       mean count  ...           mean count
+expected_type                      ...                     
+categorization        0.250     2  ...          0.048     2
+comparison            0.000     1  ...          0.000     1
+description           0.642     2  ...          0.091     2
+evolution             1.000     2  ...          0.048     2
+statistics            0.788     5  ...          0.159     5
 
 [5 rows x 8 columns]
 
@@ -32,7 +33,7 @@ ANALYSE PAR TYPE DE RECHERCHE:
             faithfulness       answer_relevancy  ... context_precision context_recall      
                     mean count             mean  ...             count           mean count
 actual_type                                      ...                                       
-semantic           0.644    12            0.397  ...                12          0.101    12
+semantic           0.644    12            0.404  ...                12          0.098    12
 
 [1 rows x 8 columns]
 
@@ -65,11 +66,13 @@ CONTEXT_RECALL:
 
 CORRÉLATIONS ENTRE MÉTRIQUES:
 ----------------------------------------
-                   faithfulness  answer_relevancy  context_precision  context_recall
-faithfulness              1.000             0.206              0.862           0.229
-answer_relevancy          0.206             1.000              0.020          -0.107
-context_precision         0.862             0.020              1.000           0.345
-context_recall            0.229            -0.107              0.345           1.000
+                   faithfulness  ...  context_recall
+faithfulness              1.000  ...           0.236
+answer_relevancy          0.197  ...          -0.093
+context_precision         0.863  ...           0.339
+context_recall            0.236  ...           1.000
+
+[4 rows x 4 columns]
 
 TOP 3 QUESTIONS PAR MÉTRIQUE:
 ----------------------------------------
@@ -81,7 +84,7 @@ FAITHFULNESS:
 
 ANSWER_RELEVANCY:
   1. quels sont les deux types de dracaufeu et ses capacités spéc... (score: 0.938)
-  2. quels sont les deux types de florizarre et ses capacités spé... (score: 0.642)
+  2. quels sont les deux types de florizarre et ses capacités spé... (score: 0.643)
   3. donne-moi exactement les statistiques de base de bulbizarre ... (score: 0.488)
 
 CONTEXT_PRECISION:
@@ -91,7 +94,7 @@ CONTEXT_PRECISION:
 
 CONTEXT_RECALL:
   1. donne-moi exactement les statistiques de base de pikachu (pv... (score: 0.562)
-  2. décris le comportement de ronflex selon poképédia.... (score: 0.167)
+  2. décris le comportement de ronflex selon poképédia.... (score: 0.130)
   3. quelles sont les capacités spéciales de ronflex ?... (score: 0.125)
 
 QUESTIONS AVEC LES PLUS MAUVAIS SCORES:
@@ -110,12 +113,12 @@ ANSWER_RELEVANCY (plus bas):
 CONTEXT_PRECISION (plus bas):
   1. cites trois pokémon légendaires de la première génération.... (score: 0.000)
   2. lequel a le plus de points de vie, ronflex ou pikachu ?... (score: 0.000)
-  3. quels sont les deux types de florizarre et ses capacités spé... (score: 0.857)
+  3. quels sont les deux types de florizarre et ses capacités spé... (score: 0.833)
 
 CONTEXT_RECALL (plus bas):
   1. cites trois pokémon légendaires de la première génération.... (score: 0.000)
   2. lequel a le plus de points de vie, ronflex ou pikachu ?... (score: 0.000)
-  3. quels sont les deux types de florizarre et ses capacités spé... (score: 0.026)
+  3. quels sont les deux types de florizarre et ses capacités spé... (score: 0.021)
 
 ANALYSE DÉTAILLÉE DES ERREURS:
 ----------------------------------------
@@ -149,12 +152,13 @@ moyenne faithfulness pour ces questions: 0.307
   score faithfulness: 0.500
 
 questions avec faible answer_relevancy (<0.5): 10
-moyenne answer_relevancy pour ces questions: 0.318
+moyenne answer_relevancy pour ces questions: 0.327
 
 RÉSUMÉ DES PERFORMANCES:
 ----------------------------------------
+mode engagé: désactivé
 nombre total de questions: 12
 faithfulness moyen: 0.644 ± 0.353
-answer_relevancy moyen: 0.397 ± 0.215
-context_precision moyen: 0.799 ± 0.376
-context_recall moyen: 0.101 ± 0.153
+answer_relevancy moyen: 0.404 ± 0.213
+context_precision moyen: 0.796 ± 0.375
+context_recall moyen: 0.098 ± 0.153

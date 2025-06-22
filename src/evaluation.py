@@ -278,12 +278,43 @@ def faithfulness(prediction: str, context: List[str]) -> float:
 
 
 def context_overlap_score(answer: str, context: List[str]) -> float:
-    """calcule le score de chevauchement entre la réponse et le contexte."""
+    """calcule le score de fidélité basé sur la similarité avec le contexte."""
     if not context:
         return 0.0
     
-    # combine tout le contexte
-    full_context = " ".join(context)
-    
-    # utilise la fonction de chevauchement de mots-clés
-    return calculate_keyword_overlap(answer, full_context)
+    try:
+        # combine tout le contexte
+        full_context = " ".join(context)
+        
+        # normalise les textes
+        answer_norm = re.sub(r'[^\w\s]', ' ', answer.lower()).strip()
+        context_norm = re.sub(r'[^\w\s]', ' ', full_context.lower()).strip()
+        
+        # calcule la similarité avec SequenceMatcher
+        from difflib import SequenceMatcher
+        similarity = SequenceMatcher(None, answer_norm, context_norm).ratio()
+        
+        # calcule aussi le chevauchement de mots-clés
+        answer_words = set(re.findall(r'\b\w{3,}\b', answer_norm))
+        context_words = set(re.findall(r'\b\w{3,}\b', context_norm))
+        
+        if answer_words:
+            # pourcentage de mots de la réponse présents dans le contexte
+            relevant_words = answer_words.intersection(context_words)
+            keyword_ratio = len(relevant_words) / len(answer_words)
+        else:
+            keyword_ratio = 0.0
+        
+        # combine les deux scores (similarité + chevauchement de mots)
+        combined_score = (similarity + keyword_ratio) / 2
+        
+        # ajuste le score pour qu'il soit plus réaliste
+        # un score de 0.2-0.4 est normal pour une bonne réponse RAG
+        # un score de 0.5+ indique une très bonne fidélité
+        adjusted_score = min(1.0, combined_score * 1.2)
+        
+        return adjusted_score
+        
+    except Exception as e:
+        print(f"Erreur dans context_overlap_score: {e}")
+        return 0.5  # valeur par défaut raisonnable

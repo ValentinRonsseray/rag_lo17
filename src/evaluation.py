@@ -275,3 +275,15 @@ def faithfulness(prediction: str, context: List[str]) -> float:
     except Exception:
         # fallback vers une méthode simple
         return 0.5
+
+
+def context_overlap_score(answer: str, context: List[str]) -> float:
+    """calcule le score de chevauchement entre la réponse et le contexte."""
+    if not context:
+        return 0.0
+    
+    # combine tout le contexte
+    full_context = " ".join(context)
+    
+    # utilise la fonction de chevauchement de mots-clés
+    return calculate_keyword_overlap(answer, full_context)

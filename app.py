@@ -13,10 +13,16 @@ try:
 except ImportError:
     import setuptools._distutils as distutils
 
-from src.evaluation import RAGEvaluator, faithfulness
-
 from src.rag_core import RAGSystem, load_pokepedia_documents
 from src.format_pokeapi_data import create_pokemon_documents
+
+def cleanup_rag_system():
+    """nettoie le système rag en cas d'erreur."""
+    try:
+        if "rag_system" in st.session_state:
+            st.session_state.rag_system.cleanup()
+    except:
+        pass
 
 # config de la page
 st.set_page_config(
@@ -30,15 +36,15 @@ if "engaged_mode" not in st.session_state:
     st.session_state.engaged_mode = True  # mode engagé activé par défaut
 if "rag_system" not in st.session_state:
     st.session_state.rag_system = RAGSystem(engaged_mode=st.session_state.engaged_mode)
-if "evaluator" not in st.session_state:
-    st.session_state.evaluator = RAGEvaluator()
 if "num_pokemon" not in st.session_state:
     st.session_state.num_pokemon = 0
 if "num_pokepedia" not in st.session_state:
     st.session_state.num_pokepedia = 0
+if "data_embedded" not in st.session_state:
+    st.session_state.data_embedded = False
 
 # chargement des données
-if "data_embedded" not in st.session_state:
+if not st.session_state.data_embedded:
     with st.spinner("Chargement des données..."):
         try:
             # charge les documents pokeapi
@@ -65,6 +71,7 @@ if "data_embedded" not in st.session_state:
         except Exception as e:
             st.error(f"Erreur de chargement : {e}")
             st.session_state.data_embedded = False
+            cleanup_rag_system()
 
 # titre et description
 st.title("⚡ Pokédex IA - Système de Questions-Réponses")
@@ -82,8 +89,6 @@ Le système utilise une recherche vectorielle avancée avec :
 - Métadonnées enrichies incluant les informations d'index (types, statuts, habitats, couleurs)
 - Intégration automatique des données Poképédia pour des réponses plus riches et détaillées
 - Recherche sémantique pour comprendre le contexte et l'intention des questions
-
-**Évaluation RAGAS** : Le système utilise RAGAS (Retrieval-Augmented Generation Assessment) pour évaluer la qualité des réponses.
 """
 )
 
@@ -121,12 +126,21 @@ with st.sidebar:
 
     # stats des données
     st.subheader("Statistiques des données")
-    if "data_embedded" in st.session_state and st.session_state.data_embedded:
+    if st.session_state.data_embedded:
         st.write(f"Nombre de Pokémon : {st.session_state.num_pokemon}")
         st.write(f"Documents Poképédia : {st.session_state.num_pokepedia}")
         st.write("Sources : PokeAPI + Poképédia")
     else:
         st.write("Données non chargées")
+
+    # bouton de réinitialisation
+    st.subheader("Maintenance")
+    if st.button("🔄 Réinitialiser l'application"):
+        cleanup_rag_system()
+        for key in ["data_embedded", "num_pokemon", "num_pokepedia"]:
+            if key in st.session_state:
+                del st.session_state[key]
+        st.rerun()
 
     # exemples de questions
     st.subheader("Exemples de questions")
@@ -146,6 +160,11 @@ with st.sidebar:
 # contenu principal
 st.header("Posez votre question")
 
+# vérification que les données sont chargées
+if not st.session_state.data_embedded:
+    st.error("❌ Les données ne sont pas encore chargées. Veuillez attendre ou rafraîchir la page.")
+    st.stop()
+
 # saisie de la question
 question = st.text_input("Entrez votre question:")
 
@@ -155,136 +174,92 @@ if question:
         try:
             result = st.session_state.rag_system.query(question)
 
-            # affichage de la réponse
-            st.info("Recherche sémantique (vecteurs)")
-            st.subheader("Réponse")
-            st.write(result["answer"])
-
-            # évaluation de la réponse avec ragas
-            with st.spinner("Évaluation RAGAS de la réponse..."):
-                try:
-                    # utilise ragas pour l'évaluation
-                    from src.evaluation import evaluate_single_response
-                    ragas_scores = evaluate_single_response(
-                        question=question,
-                        context=result["context"],
-                        answer=result["answer"]
+            search_type = result.get("search_type", "semantic")
+            if search_type == "exact":
+                st.success("Recherche exacte (index inverse)")
+                # Pour les recherches exactes, on n'affiche pas les métriques de confiance
+                st.subheader("Réponse")
+                st.write(result["answer"])
+            else:
+                st.info("Recherche sémantique (vecteurs)")
+                # Affichage de la réponse
+                st.subheader("Réponse")
+                st.write(result["answer"])
+                
+                # Évaluation de la réponse
+                with st.spinner("Évaluation de la réponse..."):
+                    try:
+                        from src.evaluation import context_overlap_score
+                        overlap = context_overlap_score(result["answer"], result["context"])
+                        faithfulness = overlap
+                    except Exception as e:
+                        st.warning(f"Erreur lors de l'évaluation : {e}")
+                        overlap = 0.5
+                        faithfulness = 0.5
+                
+                # Affichage des indicateurs de confiance
+                st.subheader("Indicateurs de Confiance")
+                
+                # Création de colonnes pour les métriques
+                col1, col2 = st.columns(2)
+                
+                # Fidélité (inverse de la probabilité d'hallucination)
+                hallucination_prob = 1 - faithfulness
+                with col1:
+                    st.metric(
+                        "Probabilité d'Hallucination",
+                        f"{hallucination_prob:.1%}",
+                        delta=None,
+                        delta_color="inverse"
                     )
-                    
-                    faithfulness_score = ragas_scores.get("faithfulness", 0.0)
-                    answer_relevancy = ragas_scores.get("answer_relevancy", 0.0)
-                    context_precision = ragas_scores.get("context_precision", 0.0)
-                    context_recall = ragas_scores.get("context_recall", 0.0)
-                    
-                except Exception as e:
-                    st.warning(f"Erreur lors de l'évaluation RAGAS : {e}")
-                    # fallback vers l'ancienne méthode
-                    faithfulness_score = faithfulness(result["answer"], result["context"])
-                    answer_relevancy = 0.5
-                    context_precision = 0.5
-                    context_recall = 0.5
-
-            # indicateurs de confiance ragas
-            st.subheader("Métriques RAGAS")
-
-            # colonnes pour les métriques
-            col1, col2 = st.columns(2)
-
-            # faithfulness (fidélité)
-            with col1:
-                st.metric(
-                    "Faithfulness",
-                    f"{faithfulness_score:.3f}",
-                    delta=None,
-                )
-
-            # answer_relevancy (pertinence de la réponse)
-            with col2:
-                st.metric(
-                    "Answer Relevancy", 
-                    f"{answer_relevancy:.3f}",
-                    delta=None,
-                )
-
-            # context_precision et context_recall
-            col3, col4 = st.columns(2)
-            
-            with col3:
-                st.metric(
-                    "Context Precision",
-                    f"{context_precision:.3f}",
-                    delta=None,
-                )
-            
-            with col4:
-                st.metric(
-                    "Context Recall",
-                    f"{context_recall:.3f}",
-                    delta=None,
-                )
-
-            # barre de confiance globale (moyenne des métriques ragas)
-            confidence_score = (faithfulness_score + answer_relevancy + context_precision + context_recall) / 4
-            st.progress(confidence_score, text="Confiance globale (moyenne RAGAS)")
-
-            # avertissement si scores faibles
-            if faithfulness_score < 0.7:
-                st.warning("⚠️ Attention : Faible Faithfulness - Réponse potentiellement incorrecte")
-            
-            if answer_relevancy < 0.5:
-                st.warning("⚠️ Attention : Faible Answer Relevancy - Réponse potentiellement hors sujet")
-
-            # affichage du contexte
-            if result["context"]:
-                with st.expander("Voir le contexte"):
-                    for i, (ctx, metadata) in enumerate(
-                        zip(result["context"], result["metadata"]), 1
-                    ):
-                        source = metadata.get("source", "unknown")
-                        source_icon = (
-                            "📊"
-                            if source == "pokeapi"
-                            else "📚" if source == "pokepedia" else "❓"
-                        )
-                        st.markdown(f"**Contexte {i}** {source_icon} ({source}):")
-                        st.write(ctx)
-                        st.markdown("---")
+                
+                # Taux de recouvrement du contexte
+                with col2:
+                    st.metric(
+                        "Recouvrement du Contexte",
+                        f"{overlap:.1%}",
+                        delta=None
+                    )
+                
+                # Barre de progression pour la confiance globale
+                confidence_score = faithfulness
+                
+                st.progress(confidence_score, text="Confiance Globale")
+                
+                # Avertissement si probabilité d'hallucination élevée
+                if hallucination_prob > 0.3:
+                    st.warning("⚠️ Attention : Cette réponse pourrait contenir des informations incorrectes ou inventées.")
+                
+                # Affichage du contexte (uniquement pour la recherche sémantique)
+                if result.get("context") and result.get("metadata"):
+                    with st.expander("Voir le Contexte Récupéré"):
+                        for i, (ctx, metadata) in enumerate(
+                            zip(result["context"], result["metadata"]), 1
+                        ):
+                            source = metadata.get("source", "unknown") if metadata else "unknown"
+                            source_icon = (
+                                "📊"
+                                if source == "pokeapi"
+                                else "📚" if source == "pokepedia" else "❓"
+                            )
+                            st.markdown(f"**Contexte {i}** {source_icon} ({source}):")
+                            st.write(ctx)
+                            st.markdown("---")
+                elif result.get("context"):
+                    with st.expander("Voir le Contexte Récupéré"):
+                        for i, ctx in enumerate(result["context"], 1):
+                            st.markdown(f"**Contexte {i}:**")
+                            st.write(ctx)
+                            st.markdown("---")
+                        
         except ValueError as e:
             st.error(str(e))
             if "réinitialiser l'application" in str(e).lower():
                 st.session_state.data_embedded = False
+                cleanup_rag_system()
                 st.rerun()
         except Exception as e:
-            st.error(f"Erreur : {e}")
+            st.error(f"Une erreur est survenue : {e}")
             st.session_state.data_embedded = False
+            cleanup_rag_system()
             st.rerun()
-
-# section d'évaluation
-st.header("Évaluation")
-with st.expander("Ajouter une référence"):
-    reference = st.text_area("Entrez la réponse de référence:")
-    if st.button("Sauvegarder la référence"):
-        st.session_state.reference_answer = reference
-        st.success("Référence sauvegardée!")
-
-# journal des hallucinations
-if "answer" in locals() and "reference_answer" in st.session_state:
-    if faithfulness_score < 0.7:  # seuil d'hallucination
-        log_path = Path("hallucinations.csv")
-        log_df = pd.DataFrame(
-            [
-                {
-                    "timestamp": datetime.now(),
-                    "question": question,
-                    "prediction": result["answer"],
-                    "reference": st.session_state.reference_answer,
-                    "faithfulness_score": faithfulness_score,
-                    "search_type": "semantic",
-                }
-            ]
-        )
-
-        if log_path.exists():
-            log_df.to_csv(log_path, mode="a", header=False, index=False)
-        else:
-            log_df.to_csv(log_path, index=False)

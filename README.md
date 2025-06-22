@@ -1,190 +1,175 @@
-# RAG Pokémon Question Answering System
+# rag pokémon question answering system
 
-Un système de Questions-Réponses basé sur RAG (Retrieval-Augmented Generation) spécialisé dans l'univers Pokémon, utilisant LangChain, le modèle Gemini de Google et ChromaDB.
+un système de questions-réponses basé sur rag (retrieval-augmented generation) spécialisé dans l'univers pokémon, utilisant langchain, le modèle gemini de google et chromadb.
 
-## Fonctionnalités
+## fonctionnalités
 
-- **Sources de données multiples** : PokeAPI (statistiques, types, capacités) + Poképédia (descriptions, biologie, comportement)
-- **Recherche vectorielle avancée** avec métadonnées enrichies (types, statuts, habitats, couleurs)
-- **Mode de réponse configurable** : Normal (concis) ou Engagé (détaillé)
-- **Évaluation complète** avec métriques inspirées de RAGAS
-- **Détection d'hallucinations** et journalisation automatique
-- **Interface web Streamlit** intuitive
-- **Scraping automatique** des données Poképédia
-- **Index hybrides** pour une recherche optimisée
-- **Support Docker** pour le déploiement
+- **sources de données multiples** : pokeapi (statistiques, types, capacités) + poképédia (descriptions, biologie, comportement)
+- **recherche vectorielle avancée** avec métadonnées enrichies (types, statuts, habitats, couleurs)
+- **mode de réponse configurable** : normal (concis) ou engagé (détaillé)
+- **évaluation complète** avec métriques inspirées de ragas
+- **détection d'hallucinations** et journalisation automatique
+- **interface web streamlit** intuitive
+- **scraping automatique** des données poképédia
+- **index hybrides** pour une recherche optimisée
 
-## Architecture
+## architecture
 
-### Sources de données
-- **PokeAPI** : Données techniques officielles (statistiques, types, capacités, évolutions)
-- **Poképédia** : Contenu enrichi en français (descriptions, biologie, comportement, habitat, mythologie)
-- **Index métadonnées** : Types, statuts légendaires, habitats, couleurs
+### sources de données
+- **pokeapi** : données techniques officielles (statistiques, types, capacités, évolutions)
+- **poképédia** : contenu enrichi en français (descriptions, biologie, comportement, habitat, mythologie)
+- **index métadonnées** : types, statuts légendaires, habitats, couleurs
 
-### Système RAG
-- **Embeddings** : Google Generative AI (models/embedding-001)
-- **LLM** : Gemini 2.0 Flash
-- **Vector Store** : ChromaDB avec métadonnées enrichies
-- **Recherche** : Vectorielle sémantique avec filtrage par métadonnées
+### système rag
+- **embeddings** : google generative ai (models/embedding-001)
+- **llm** : gemini 2.0 flash
+- **vector store** : chromadb avec métadonnées enrichies
+- **recherche** : vectorielle sémantique avec filtrage par métadonnées
 
-## Prérequis
+## prérequis
 
-- Python 3.12 ou supérieur
-- Clé API Google pour le modèle Gemini
-- Docker (optionnel, pour le déploiement conteneurisé)
+- python 3.12 ou supérieur
+- clé api google pour le modèle gemini
 
-## Installation
+## installation
 
-1. **Cloner le repository** :
+1. **cloner le repository** :
 ```bash
 git clone <repository-url>
 cd rag-lo17
 ```
 
-2. **Installer les dépendances** :
+2. **installer les dépendances** :
 ```bash
 pip install -r requirements.txt
 ```
 
-3. **Configurer la clé API Google** :
+3. **configurer la clé api google** :
 ```bash
-# Créer un fichier .env
+# créer un fichier .env
 echo "GOOGLE_API_KEY=your-api-key-here" > .env
 ```
 
-## Utilisation
+## utilisation
 
-### Lancement local
+### lancement local
 
-1. **Lancer l'application** :
+1. **lancer l'application** :
 ```bash
 python main.py --run
 ```
 
-Le script vérifie automatiquement la présence des données et les télécharge si nécessaire :
-- **PokeAPI** : Données Pokémon de la génération 1
-- **Poképédia** : Scraping automatique des pages contenant "est un pokemon"
-- **Index** : Construction automatique des index par type, statut, habitat, couleur
+le script vérifie automatiquement la présence des données et les télécharge si nécessaire :
+- **pokeapi** : données pokémon de la génération 1
+- **poképédia** : scraping automatique des pages contenant "est un pokemon"
+- **index** : construction automatique des index par type, statut, habitat, couleur
 
-2. **Ouvrir l'interface** : `http://localhost:8501`
+2. **ouvrir l'interface** : `http://localhost:8501`
 
-### Utilisation avec Docker
-
-1. **Construire l'image** :
-```bash
-docker build -t rag-pokemon .
-```
-
-2. **Lancer le conteneur** :
-```bash
-docker run -p 8501:8501 -e GOOGLE_API_KEY='your-api-key' rag-pokemon
-```
-
-## Structure du projet
+## structure du projet
 
 ```
 rag-lo17/
-├── app.py                      # Application Streamlit
-├── main.py                     # Script principal de lancement
+├── app.py                      # application streamlit
+├── main.py                     # script principal de lancement
 ├── src/
-│   ├── rag_core.py            # Système RAG principal
-│   ├── evaluation.py          # Métriques d'évaluation
-│   ├── evaluate_rag.py        # Script d'évaluation complet
-│   ├── scrap_pokeapi.py       # Téléchargement PokeAPI
-│   ├── scrap_pokepedia.py     # Scraping Poképédia
-│   ├── build_pokemon_index.py # Construction des index
-│   ├── format_pokeapi_data.py # Formatage des données
-│   └── pokepedia_data.py      # Gestion des données Poképédia
+│   ├── rag_core.py            # système rag principal
+│   ├── evaluation.py          # métriques d'évaluation
+│   ├── evaluate_rag.py        # script d'évaluation complet
+│   ├── scrap_pokeapi.py       # téléchargement pokeapi
+│   ├── scrap_pokepedia.py     # scraping poképédia
+│   ├── build_pokemon_index.py # construction des index
+│   ├── format_pokeapi_data.py # formatage des données
+│   └── pokepedia_data.py      # gestion des données poképédia
 ├── data/
-│   ├── pokeapi/               # Données PokeAPI
-│   ├── pokepedia/             # Données Poképédia
-│   └── indexes/               # Index de recherche
-├── evaluation_results/        # Résultats d'évaluation
-├── requirements.txt           # Dépendances Python
-├── Dockerfile                 # Configuration Docker
-└── README.md                  # Documentation
+│   ├── pokeapi/               # données pokeapi
+│   ├── pokepedia/             # données poképédia
+│   └── indexes/               # index de recherche
+├── evaluation_results/        # résultats d'évaluation
+├── requirements.txt           # dépendances python
+└── readme.md                  # documentation
 ```
 
-## Fonctionnalités avancées
+## fonctionnalités avancées
 
-### Mode de réponse
-- **Mode Normal** : Réponses concises (3-5 phrases)
-- **Mode Engagé** : Réponses détaillées et structurées
+### mode de réponse
+- **mode normal** : réponses concises (3-5 phrases)
+- **mode engagé** : réponses détaillées et structurées
 
-### Types de questions supportées
-- **Statistiques** : "Quelles sont les stats de Pikachu ?"
-- **Descriptions** : "Décris le comportement de Charizard"
-- **Catégorisation** : "Quels sont les Pokémon de type feu ?"
-- **Comparaisons** : "Qui est plus rapide entre Mew et Machopeur ?"
-- **Lore et mythologie** : "Raconte l'histoire de Mewtwo"
+### types de questions supportées
+- **statistiques** : "quelles sont les stats de pikachu ?"
+- **descriptions** : "décris le comportement de charizard"
+- **catégorisation** : "quels sont les pokémon de type feu ?"
+- **comparaisons** : "qui est plus rapide entre mew et machopeur ?"
+- **lore et mythologie** : "raconte l'histoire de mewtwo"
 
-### Métadonnées enrichies
-- **Types** : pokemon_types (ex: "fire, flying")
-- **Statuts** : is_legendary, is_mythical, is_baby
-- **Habitat** : habitat (ex: "mountain", "forest")
-- **Couleur** : color (ex: "red", "blue")
+### métadonnées enrichies
+- **types** : pokemon_types (ex: "fire, flying")
+- **statuts** : is_legendary, is_mythical, is_baby
+- **habitat** : habitat (ex: "mountain", "forest")
+- **couleur** : color (ex: "red", "blue")
 
-## Évaluation
+## évaluation
 
-Le système inclut une évaluation complète avec métriques inspirées de RAGAS :
+le système inclut une évaluation complète avec métriques inspirées de ragas :
 
-### Métriques calculées
-- **F1 Score** : Précision et rappel de la réponse
-- **Similarité** : Similarité sémantique avec la référence
-- **Précision contexte** : Pertinence du contexte récupéré
-- **Rappel contexte** : Complétude du contexte par rapport à la référence
-- **Fidélité** : Proportion de la réponse basée sur le contexte
+### métriques calculées
+- **f1 score** : précision et rappel de la réponse
+- **similarité** : similarité sémantique avec la référence
+- **précision contexte** : pertinence du contexte récupéré
+- **rappel contexte** : complétude du contexte par rapport à la référence
+- **fidélité** : proportion de la réponse basée sur le contexte
 
-### Lancement de l'évaluation
+### lancement de l'évaluation
 ```bash
-# Utiliser le jeu de questions par défaut
+# utiliser le jeu de questions par défaut
 python src/evaluate_rag.py
 
-# Utiliser un jeu de questions personnalisé
+# utiliser un jeu de questions personnalisé
 python src/evaluate_rag.py path/to/questions.json
 ```
 
-### Résultats
-- **Rapport détaillé** : `evaluation_results/evaluation_report.txt`
-- **Données brutes** : `evaluation_results/evaluation_results.csv`
-- **Visualisations** : `evaluation_results/evaluation_metrics.png`
+### résultats
+- **rapport détaillé** : `evaluation_results/evaluation_report.txt`
+- **données brutes** : `evaluation_results/evaluation_results.csv`
+- **visualisations** : `evaluation_results/evaluation_metrics.png`
 
-## Détection d'hallucinations
+## détection d'hallucinations
 
-Le système détecte automatiquement les hallucinations potentielles :
-- **Seuil** : Fidélité < 0.7
-- **Journalisation** : `hallucinations.csv`
-- **Indicateurs visuels** : Barres de confiance dans l'interface
+le système détecte automatiquement les hallucinations potentielles :
+- **seuil** : fidélité < 0.7
+- **journalisation** : `hallucinations.csv`
+- **indicateurs visuels** : barres de confiance dans l'interface
 
-## Configuration
+## configuration
 
-### Variables d'environnement
+### variables d'environnement
 ```bash
 GOOGLE_API_KEY=your-api-key-here
 ```
 
-### Paramètres du modèle
-- **Température** : 0.0 (déterministe) à 1.0 (créatif)
-- **Max tokens** : 256 (normal) à 512 (engagé)
-- **Documents récupérés** : 2 (normal) à 4 (engagé)
+### paramètres du modèle
+- **température** : 0.0 (déterministe) à 1.0 (créatif)
+- **max tokens** : 256 (normal) à 512 (engagé)
+- **documents récupérés** : 2 (normal) à 4 (engagé)
 
-## Améliorations récentes
+## améliorations récentes
 
-- ✅ **Intégration Poképédia** : Contenu enrichi en français
-- ✅ **Métadonnées enrichies** : Index par type, statut, habitat, couleur
-- ✅ **Prompts optimisés** : Instructions précises pour l'utilisation du contexte
-- ✅ **Évaluation complète** : Rapport détaillé avec statistiques
-- ✅ **Interface améliorée** : Mode engagé par défaut, indicateurs de confiance
-- ✅ **Correction protobuf** : Compatibilité avec les nouvelles versions
+- ✅ **intégration poképédia** : contenu enrichi en français
+- ✅ **métadonnées enrichies** : index par type, statut, habitat, couleur
+- ✅ **prompts optimisés** : instructions précises pour l'utilisation du contexte
+- ✅ **évaluation complète** : rapport détaillé avec statistiques
+- ✅ **interface améliorée** : mode engagé par défaut, indicateurs de confiance
+- ✅ **correction protobuf** : compatibilité avec les nouvelles versions
 
-## Contribution
+## contribution
 
-1. Fork le repository
-2. Créer une branche feature
-3. Commiter les changements
-4. Pousser vers la branche
-5. Créer une Pull Request
+1. fork le repository
+2. créer une branche feature
+3. commiter les changements
+4. pousser vers la branche
+5. créer une pull request
 
-## Licence
+## licence
 
-Ce projet est sous licence MIT - voir le fichier LICENSE pour plus de détails.
+ce projet est sous licence mit - voir le fichier license pour plus de détails.

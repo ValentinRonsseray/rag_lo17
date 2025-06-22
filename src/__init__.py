@@ -1,5 +1,5 @@
 """
-Package src pour le système RAG Pokémon.
+package src pour le système rag pokémon.
 """
 
 from .rag_core import RAGSystem

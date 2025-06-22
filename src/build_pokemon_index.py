@@ -1,7 +1,3 @@
-"""
-script de construction des index pokémon
-"""
-
 import json
 import os
 from typing import Dict, List, Any

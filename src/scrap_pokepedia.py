@@ -44,6 +44,7 @@ def get_category_links(limit: Optional[int] = MAX_PAGES) -> List[Tuple[str, str]
 
     return links
 
+
 def extract_paragraphs(html: str) -> str:
     """Extrait les paragraphes pertinents d'une page."""
     soup = BeautifulSoup(html, "html.parser")

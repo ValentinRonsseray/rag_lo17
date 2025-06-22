@@ -1,5 +1,3 @@
-"""Module d'évaluation inspiré par RAGAS pour le système RAG Pokémon."""
-
 from __future__ import annotations
 
 import re
@@ -12,19 +10,19 @@ from rapidfuzz import fuzz
 
 
 def _normalize(text: str) -> str:
-    """Nettoie le texte pour les comparaisons."""
+    """nettoie le texte pour les comparaisons."""
     text = text.lower()
     text = re.sub(r"[^\w\s]", " ", text)
     return " ".join(text.split())
 
 
 def _tokenize(text: str) -> List[str]:
-    """Découpe le texte en tokens simples."""
+    """découpe le texte en tokens simples."""
     return _normalize(text).split()
 
 
 def f1_score(prediction: str, reference: str) -> float:
-    """Calcule le score F1 entre la prédiction et la référence."""
+    """calcule le score f1 entre la prédiction et la référence."""
     pred_tokens = _tokenize(prediction)
     ref_tokens = _tokenize(reference)
     if not pred_tokens or not ref_tokens:
@@ -36,7 +34,7 @@ def f1_score(prediction: str, reference: str) -> float:
 
 
 def similarity(prediction: str, reference: str) -> float:
-    """Mesure de similarité rapide entre deux textes."""
+    """mesure de similarité rapide entre deux textes."""
     return fuzz.token_set_ratio(prediction, reference) / 100.0
 
 
@@ -48,7 +46,7 @@ def _context_tokens(context: List[str]) -> List[str]:
 
 
 def context_precision(context: List[str], reference: str) -> float:
-    """Précision du contexte par rapport à la référence."""
+    """précision du contexte par rapport à la référence."""
     ctx_tokens = _context_tokens(context)
     ref_tokens = _tokenize(reference)
     if not ctx_tokens:
@@ -58,7 +56,7 @@ def context_precision(context: List[str], reference: str) -> float:
 
 
 def context_recall(context: List[str], reference: str) -> float:
-    """Rappel du contexte par rapport à la référence."""
+    """rappel du contexte par rapport à la référence."""
     ctx_tokens = _context_tokens(context)
     ref_tokens = _tokenize(reference)
     if not ref_tokens:
@@ -68,7 +66,7 @@ def context_recall(context: List[str], reference: str) -> float:
 
 
 def faithfulness(prediction: str, context: List[str]) -> float:
-    """Mesure la proportion de la réponse présente dans le contexte."""
+    """mesure la proportion de la réponse présente dans le contexte."""
     pred_tokens = _tokenize(prediction)
     ctx_tokens = _context_tokens(context)
     if not pred_tokens:
@@ -78,13 +76,15 @@ def faithfulness(prediction: str, context: List[str]) -> float:
 
 
 class RAGEvaluator:
-    """Évaluateur utilisant des métriques inspirées de RAGAS."""
+    """évaluateur utilisant des métriques inspirées de ragas."""
 
     def __init__(self) -> None:
         pass
 
-    async def evaluate_response(self, prediction: str, reference: str, context: List[str]) -> Dict[str, float]:
-        """Évalue une paire prédiction/référence avec son contexte."""
+    async def evaluate_response(
+        self, prediction: str, reference: str, context: List[str]
+    ) -> Dict[str, float]:
+        """évalue une paire prédiction/référence avec son contexte."""
         return {
             "answer_f1": f1_score(prediction, reference),
             "answer_similarity": similarity(prediction, reference),
@@ -96,14 +96,14 @@ class RAGEvaluator:
     async def evaluate_dataset(
         self, predictions: List[str], references: List[str], contexts: List[List[str]]
     ) -> pd.DataFrame:
-        """Évalue un ensemble de prédictions."""
+        """évalue un ensemble de prédictions."""
         rows = []
         for pred, ref, ctx in zip(predictions, references, contexts):
             rows.append(await self.evaluate_response(pred, ref, ctx))
         return pd.DataFrame(rows)
 
     async def plot_results(self, results_df: pd.DataFrame, output_dir: Path) -> None:
-        """Crée un histogramme pour chaque métrique."""
+        """crée un histogramme pour chaque métrique."""
         output_dir.mkdir(parents=True, exist_ok=True)
         numeric_columns = results_df.select_dtypes(include=["float64", "int64"]).columns
         num = len(numeric_columns)
@@ -126,5 +126,5 @@ class RAGEvaluator:
         plt.savefig(output_dir / "evaluation_metrics.png")
         plt.close(fig)
         results_df.to_csv(output_dir / "eval_metrics.csv", index=False)
-        print("\nRésumé de l'évaluation :")
+        print("\nrésumé de l'évaluation :")
         print(results_df[numeric_columns].mean())

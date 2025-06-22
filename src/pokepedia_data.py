@@ -1,7 +1,3 @@
-"""
-Module pour gérer les données Poképédia et enrichir les informations des Pokémon.
-"""
-
 import json
 import os
 from typing import Dict, Any, Optional

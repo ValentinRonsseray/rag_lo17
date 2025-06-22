@@ -20,7 +20,7 @@ from src.format_pokeapi_data import create_pokemon_documents
 
 # config de la page
 st.set_page_config(
-    page_title="pokédex ia - système de questions-réponses",
+    page_title="Pokédex IA - Système de Questions-Réponses",
     page_icon="⚡",
     layout="wide",
 )
@@ -39,7 +39,7 @@ if "num_pokepedia" not in st.session_state:
 
 # chargement des données
 if "data_embedded" not in st.session_state:
-    with st.spinner("chargement des données..."):
+    with st.spinner("Chargement des données..."):
         try:
             # charge les documents pokeapi
             pokemon_documents = create_pokemon_documents()
@@ -52,7 +52,7 @@ if "data_embedded" not in st.session_state:
             pokepedia_count = len(pokepedia_documents)
 
             # intègre les documents
-            st.info("intégration des documents...")
+            st.info("Intégration des documents...")
             st.session_state.rag_system.embed_documents(
                 pokemon_documents, pokepedia_documents
             )
@@ -60,40 +60,40 @@ if "data_embedded" not in st.session_state:
             st.session_state.num_pokemon = pokeapi_count
             st.session_state.num_pokepedia = pokepedia_count
             st.success(
-                f"intégration terminée ! {pokeapi_count} documents pokeapi + {pokepedia_count} documents poképédia chargés."
+                f"Intégration terminée ! {pokeapi_count} documents PokeAPI + {pokepedia_count} documents Poképédia chargés."
             )
         except Exception as e:
-            st.error(f"erreur de chargement : {e}")
+            st.error(f"Erreur de chargement : {e}")
             st.session_state.data_embedded = False
 
 # titre et description
-st.title("⚡ pokédex ia - système de questions-réponses")
+st.title("⚡ Pokédex IA - Système de Questions-Réponses")
 st.markdown(
     """
-cette application utilise un système rag (retrieval-augmented generation) pour répondre à vos questions
-sur les pokémon. le système utilise le modèle gemini de google pour la génération
-et chromadb pour le stockage et la récupération des informations.
+Cette application utilise un système RAG (Retrieval-Augmented Generation) pour répondre à vos questions
+sur les Pokémon. Le système utilise le modèle Gemini de Google pour la génération
+et ChromaDB pour le stockage et la récupération des informations.
 
-les données proviennent de deux sources principales :
-- **pokeapi** : informations détaillées sur chaque pokémon (statistiques, types, capacités, descriptions officielles)
-- **poképédia** : contenu enrichi en français avec descriptions détaillées, biologie, comportement, habitat, mythologie et faits divers
+Les données proviennent de deux sources principales :
+- **PokeAPI** : Informations détaillées sur chaque Pokémon (statistiques, types, capacités, descriptions officielles)
+- **Poképédia** : Contenu enrichi en français avec descriptions détaillées, biologie, comportement, habitat, mythologie et faits divers
 
-le système utilise une recherche vectorielle avancée avec :
-- métadonnées enrichies incluant les informations d'index (types, statuts, habitats, couleurs)
-- intégration automatique des données poképédia pour des réponses plus riches et détaillées
-- recherche sémantique pour comprendre le contexte et l'intention des questions
+Le système utilise une recherche vectorielle avancée avec :
+- Métadonnées enrichies incluant les informations d'index (types, statuts, habitats, couleurs)
+- Intégration automatique des données Poképédia pour des réponses plus riches et détaillées
+- Recherche sémantique pour comprendre le contexte et l'intention des questions
 
-**évaluation ragas** : le système utilise ragas (retrieval-augmented generation assessment) pour évaluer la qualité des réponses.
+**Évaluation RAGAS** : Le système utilise RAGAS (Retrieval-Augmented Generation Assessment) pour évaluer la qualité des réponses.
 """
 )
 
 # barre latérale
 with st.sidebar:
-    st.header("paramètres")
+    st.header("Paramètres")
 
     # paramètres du modèle
-    st.subheader("paramètres du modèle")
-    temperature = st.slider("température", 0.0, 1.0, 0.0, 0.1)
+    st.subheader("Paramètres du modèle")
+    temperature = st.slider("Température", 0.0, 1.0, 0.0, 0.1)
     
     # mettre à jour la température du système rag
     if hasattr(st.session_state.rag_system, "llm"):
@@ -102,9 +102,9 @@ with st.sidebar:
             st.session_state.rag_system.update_temperature(temperature)
 
     # mode engagé
-    st.subheader("mode de réponse")
+    st.subheader("Mode de réponse")
     engaged_mode = st.toggle(
-        "activer le mode engagé", value=st.session_state.engaged_mode
+        "Activer le mode engagé", value=st.session_state.engaged_mode
     )
     if engaged_mode != st.session_state.engaged_mode:
         st.session_state.engaged_mode = engaged_mode
@@ -115,53 +115,53 @@ with st.sidebar:
             st.session_state.rag_system._update_prompt_template()
     
     if engaged_mode:
-        st.success("✅ mode engagé activé - réponses détaillées et structurées")
+        st.success("✅ Mode engagé activé - Réponses détaillées et structurées")
     else:
-        st.info("ℹ️ mode normal - réponses concises et directes")
+        st.info("ℹ️ Mode normal - Réponses concises et directes")
 
     # stats des données
-    st.subheader("statistiques des données")
+    st.subheader("Statistiques des données")
     if "data_embedded" in st.session_state and st.session_state.data_embedded:
-        st.write(f"nombre de pokémon : {st.session_state.num_pokemon}")
-        st.write(f"documents poképédia : {st.session_state.num_pokepedia}")
-        st.write("sources : pokeapi + poképédia")
+        st.write(f"Nombre de Pokémon : {st.session_state.num_pokemon}")
+        st.write(f"Documents Poképédia : {st.session_state.num_pokepedia}")
+        st.write("Sources : PokeAPI + Poképédia")
     else:
-        st.write("données non chargées")
+        st.write("Données non chargées")
 
     # exemples de questions
-    st.subheader("exemples de questions")
+    st.subheader("Exemples de questions")
     st.markdown(
         """
-    - liste les pokémon légendaires
-    - quels sont les pokémon mythiques ?
-    - décris-moi pikachu
-    - quelles sont les stats de base de charizard ?
-    - qui a le plus d'attaque entre lapras et rattata ?
-    - raconte-moi l'histoire et la mythologie de mewtwo
-    - décris le comportement et l'habitat de bulbizarre
-    - quels sont les faits intéressants sur arcanin ?
+    - Liste les Pokémon légendaires
+    - Quels sont les Pokémon mythiques ?
+    - Décris-moi Pikachu
+    - Quelles sont les stats de base de Charizard ?
+    - Qui a le plus d'attaque entre Lapras et Rattata ?
+    - Raconte-moi l'histoire et la mythologie de Mewtwo
+    - Décris le comportement et l'habitat de Bulbizarre
+    - Quels sont les faits intéressants sur Arcanin ?
     """
     )
 
 # contenu principal
-st.header("posez votre question")
+st.header("Posez votre question")
 
 # saisie de la question
-question = st.text_input("entrez votre question:")
+question = st.text_input("Entrez votre question:")
 
 if question:
     # obtention de la réponse
-    with st.spinner("génération de la réponse..."):
+    with st.spinner("Génération de la réponse..."):
         try:
             result = st.session_state.rag_system.query(question)
 
             # affichage de la réponse
-            st.info("recherche sémantique (vecteurs)")
-            st.subheader("réponse")
+            st.info("Recherche sémantique (vecteurs)")
+            st.subheader("Réponse")
             st.write(result["answer"])
 
             # évaluation de la réponse avec ragas
-            with st.spinner("évaluation ragas de la réponse..."):
+            with st.spinner("Évaluation RAGAS de la réponse..."):
                 try:
                     # utilise ragas pour l'évaluation
                     from src.evaluation import evaluate_single_response
@@ -177,7 +177,7 @@ if question:
                     context_recall = ragas_scores.get("context_recall", 0.0)
                     
                 except Exception as e:
-                    st.warning(f"erreur lors de l'évaluation ragas : {e}")
+                    st.warning(f"Erreur lors de l'évaluation RAGAS : {e}")
                     # fallback vers l'ancienne méthode
                     faithfulness_score = faithfulness(result["answer"], result["context"])
                     answer_relevancy = 0.5
@@ -185,7 +185,7 @@ if question:
                     context_recall = 0.5
 
             # indicateurs de confiance ragas
-            st.subheader("métriques ragas")
+            st.subheader("Métriques RAGAS")
 
             # colonnes pour les métriques
             col1, col2 = st.columns(2)
@@ -193,7 +193,7 @@ if question:
             # faithfulness (fidélité)
             with col1:
                 st.metric(
-                    "faithfulness",
+                    "Faithfulness",
                     f"{faithfulness_score:.3f}",
                     delta=None,
                 )
@@ -201,7 +201,7 @@ if question:
             # answer_relevancy (pertinence de la réponse)
             with col2:
                 st.metric(
-                    "answer_relevancy", 
+                    "Answer Relevancy", 
                     f"{answer_relevancy:.3f}",
                     delta=None,
                 )
@@ -211,32 +211,32 @@ if question:
             
             with col3:
                 st.metric(
-                    "context_precision",
+                    "Context Precision",
                     f"{context_precision:.3f}",
                     delta=None,
                 )
             
             with col4:
                 st.metric(
-                    "context_recall",
+                    "Context Recall",
                     f"{context_recall:.3f}",
                     delta=None,
                 )
 
             # barre de confiance globale (moyenne des métriques ragas)
             confidence_score = (faithfulness_score + answer_relevancy + context_precision + context_recall) / 4
-            st.progress(confidence_score, text="confiance globale (moyenne ragas)")
+            st.progress(confidence_score, text="Confiance globale (moyenne RAGAS)")
 
             # avertissement si scores faibles
             if faithfulness_score < 0.7:
-                st.warning("⚠️ attention : faible faithfulness - réponse potentiellement incorrecte")
+                st.warning("⚠️ Attention : Faible Faithfulness - Réponse potentiellement incorrecte")
             
             if answer_relevancy < 0.5:
-                st.warning("⚠️ attention : faible answer_relevancy - réponse potentiellement hors sujet")
+                st.warning("⚠️ Attention : Faible Answer Relevancy - Réponse potentiellement hors sujet")
 
             # affichage du contexte
             if result["context"]:
-                with st.expander("voir le contexte"):
+                with st.expander("Voir le contexte"):
                     for i, (ctx, metadata) in enumerate(
                         zip(result["context"], result["metadata"]), 1
                     ):
@@ -246,7 +246,7 @@ if question:
                             if source == "pokeapi"
                             else "📚" if source == "pokepedia" else "❓"
                         )
-                        st.markdown(f"**contexte {i}** {source_icon} ({source}):")
+                        st.markdown(f"**Contexte {i}** {source_icon} ({source}):")
                         st.write(ctx)
                         st.markdown("---")
         except ValueError as e:

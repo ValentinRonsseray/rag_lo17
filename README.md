@@ -1,5 +1,7 @@
 # RAG Pokémon Question Answering System
 
+[DÉPÔT ORIGINAL](https://github.com/RaaaayN/rag-lo17)
+
 Un système de questions-réponses basé sur RAG (Retrieval-Augmented Generation) spécialisé dans l'univers Pokémon, utilisant LangChain, le modèle Gemini de Google et ChromaDB.
 
 ## Rapport du projet
